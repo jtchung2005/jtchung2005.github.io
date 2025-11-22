@@ -223,7 +223,7 @@
         // --- 設定與初始化 ---
         const INITIAL_SCORE = 100;
         const SCORE_PENALTY_AMOUNT = 15; // 習慣變暗時的即時扣分：15 分 
-        const BASE_RECOVER_AMOUNT = 15;  // 點擊恢復的分數 (基礎值)
+        const BASE_RECOVER_AMOUNT = 10;  // 點擊恢復的分數 (基礎值)
         const BONUS_RECOVER_AMOUNT = 20; // 前 20 秒點擊恢復的分數 (獎勵值)
         
         // 持續衰減相關設定
@@ -232,8 +232,8 @@
         
         // 隨機變暗的間隔設定
         const DARKEN_INTERVAL_SLOW_MS = 2000; // 初始間隔: 2 秒
-        // 加速後間隔調整為 800 毫秒 (0.8 秒)
-        const DARKEN_INTERVAL_FAST_MS = 800;  // 加速後間隔: 0.8 秒 
+        // 加速後間隔調整為 500 毫秒 (0.5 秒) <--- 已從 800 調整為 500
+        const DARKEN_INTERVAL_FAST_MS = 500;  // 加速後間隔: 0.5 秒 
         const ACCELERATION_TIME_MS = 15000; // 15 秒後加速 
         const BONUS_RECOVER_TIME_MS = 20000; // 獎勵恢復時間 (20 秒)
 
@@ -337,7 +337,7 @@
             // 清除當前的隨機變暗計時器
             if (darkenInterval) clearInterval(darkenInterval);
             
-            // 使用新的快速間隔 (0.8 秒) 啟動計時器
+            // 使用新的快速間隔 (0.5 秒) 啟動計時器
             darkenInterval = setInterval(randomlyDarkenHabit, DARKEN_INTERVAL_FAST_MS);
 
             // 顯示加速提示文字
@@ -441,7 +441,7 @@
                 if (elapsedTime < BONUS_RECOVER_TIME_MS) {
                     recoverAmount = BONUS_RECOVER_AMOUNT; // 20 分 (前 20 秒獎勵)
                 } else {
-                    recoverAmount = BASE_RECOVER_AMOUNT; // 15 分 (基礎恢復)
+                    recoverAmount = BASE_RECOVER_AMOUNT; // 10 分 (基礎恢復)
                 }
 
                 score += recoverAmount;
