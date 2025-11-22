@@ -15,12 +15,11 @@
         
         /* 確保主要容器的響應性 */
         .dashboard-container {
-            /* 移除固定寬度 width: 1152px; */
             margin: auto;
             display: flex;
             flex-direction: column; /* 確保內容垂直堆疊 */
-            /* 由於在 HTML 元素上應用了 p-6，這裡移除了 padding: 1.5rem */
-            max-width: 95vw; /* 響應式安全：確保在小螢幕上不會溢出 */
+            /* 響應式安全：確保在小螢幕上不會溢出 */
+            max-width: 95vw; 
         }
 
         /* 自訂按鈕的基本樣式，強制為圓形，固定大小 */
@@ -98,8 +97,8 @@
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4 sm:p-6">
 
     <!-- 主要互動面板容器 - 設置響應式最大寬度和自動居中 -->
-    <!-- max-w-6xl 約為 1152px，w-full 確保在小螢幕上填滿可用寬度 -->
-    <div id="dashboard" class="max-w-6xl w-full dashboard-container bg-white rounded-xl shadow-2xl relative p-6">
+    <!-- 保持最大寬度為 1152px，並在小螢幕上填滿可用寬度 (w-full) -->
+    <div id="dashboard" class="max-w-[1152px] w-full dashboard-container bg-white rounded-xl shadow-2xl relative p-6">
         
         <!-- 返回主頁 (Undo/Reset) 按鈕 - 位於右上角 -->
         <button id="backToHomeButton" class="absolute top-4 right-4 text-gray-500 hover:text-red-600 transition duration-150 p-2 rounded-full bg-white/50 hover:bg-white shadow-lg z-50" title="返回主頁 / 重置">
@@ -167,9 +166,12 @@
         </section>
 
         <!-- 打卡按鈕區塊 (7 個按鈕) -->
-        <!-- RWD 調整: 間距維持 gap-2，中等螢幕(md)提升至 7 欄以維持水平，且保持置中(justify-items-center) -->
-        <!-- 手機(默認): grid-cols-4 | 小螢幕: sm:grid-cols-5 | 中等螢幕: md:grid-cols-7 | 大螢幕: lg:grid-cols-7 -->
-        <section class="py-6 grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-7 gap-2 justify-items-center">
+        <!-- RWD 調整: 
+             手機(默認): grid-cols-3 (防止重疊)
+             小型平板: sm:grid-cols-4
+             中等螢幕及以上: md:grid-cols-7 (保持水平單行顯示)
+        -->
+        <section class="py-6 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 lg:grid-cols-7 gap-2 justify-items-center">
             
             <!-- 按鈕模板 (已修改為圓形) -->
             <!-- 1. 學語言 -->
@@ -231,7 +233,7 @@
         // 隨機變暗的間隔設定
         const DARKEN_INTERVAL_SLOW_MS = 2000; // 初始間隔: 2 秒
         // 加速後間隔調整為 800 毫秒 (0.8 秒)
-        const DARKEN_INTERVAL_FAST_MS = 500;  // 加速後間隔: 0.8 秒 
+        const DARKEN_INTERVAL_FAST_MS = 800;  // 加速後間隔: 0.8 秒 
         const ACCELERATION_TIME_MS = 15000; // 15 秒後加速 
         const BONUS_RECOVER_TIME_MS = 20000; // 獎勵恢復時間 (20 秒)
 
