@@ -123,18 +123,18 @@
         <!-- 遊戲結束遮罩 -->
         <div id="gameOverOverlay" class="game-over-overlay absolute inset-0 rounded-xl hidden">
             <div class="text-center p-8 bg-gray-900/90 rounded-xl border border-red-500 shadow-2xl">
-                <h2 class="text-4xl font-extrabold text-red-500 mb-4">遊戲結束 (Game Over)</h2>
-                <p class="text-xl text-gray-300 mb-6">人生分數歸零，所有習慣都已荒廢...</p>
+                <h2 class="text-4xl font-extrabold text-red-500 mb-4">所有App都未簽到</h2>
+                <p class="text-xl text-gray-300 mb-6">人生分數歸零</p>
                 <button id="restartButton" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-200">
-                    重新開始新的生活 (Restart)
+                    Restart
                 </button>
             </div>
         </div>
 
         <!-- 提示框 (絕對定位在 dashboard 內) -->
         <div id="clickHint" class="absolute bg-yellow-400 text-gray-800 p-3 rounded-lg shadow-xl hidden z-30 pointer-events-none transition duration-300" style="min-width: 150px;">
-            <div class="font-bold">✨ 趕快點擊我！</div>
-            <div class="text-sm mt-1">恢復習慣可增加分數。</div>
+            <div class="font-bold">點擊簽到</div>
+            <div class="text-sm mt-1">增加分數！</div>
             <!-- 小箭頭 -->
             <div class="w-3 h-3 bg-yellow-400 transform rotate-45 absolute bottom-[-6px] left-1/2 -translate-x-1/2"></div>
         </div>
@@ -142,8 +142,8 @@
 
         <!-- 標題 -->
         <header class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-800 text-center">人生分數互動面板</h1>
-            <p class="text-center text-gray-500">點擊變暗的習慣來恢復分數！</p>
+            <h1 class="text-3xl font-bold text-gray-800 text-center">小庭的人生分數</h1>
+            <p class="text-center text-gray-500">點擊變暗的任務來恢復分數！</p>
         </header>
         
         <!-- 加速警告區域 (使用 opacity-0 預留空間，防止佈局偏移) -->
@@ -181,7 +181,7 @@
 
             <!-- 2. 專注學習3小時 -->
             <button id="btn-study" data-habit="專注學習3小時" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
-                專注學習3小時
+                專注學習 3 小時
             </button>
 
             <!-- 3. 記帳 -->
@@ -191,7 +191,7 @@
 
             <!-- 4. 卡路里 -->
             <button id="btn-calorie" data-habit="卡路里" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
-                卡路里
+                計算卡路里
             </button>
 
             <!-- 5. 寫日記 -->
@@ -201,12 +201,12 @@
 
             <!-- 6. 跑步30分鐘 -->
             <button id="btn-run" data-habit="跑步30分鐘" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
-                跑步30分鐘
+                跑步 30 分鐘
             </button>
 
             <!-- 7. 睡滿8小時 -->
             <button id="btn-sleep" data-habit="睡滿8小時" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
-                睡滿8小時
+                睡滿 8 小時
             </button>
         </section>
 
