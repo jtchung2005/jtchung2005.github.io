@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人生分數互動面板</title>
+    <!-- 載入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 設置全局字體為 Inter，並為中文提供備用字體 */
+        :root {
+            /* 優先使用 Inter，但確保包含思源黑體等中文字體 */
+            font-family: 'Inter', 'Noto Sans TC', "Microsoft JhengHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+        
+        /* 確保主要容器的寬度為 1152px，並讓高度根據內容自動調整 */
+        .dashboard-container {
+            width: 1152px; /* 固定寬度 */
+            margin: auto;
+            display: flex;
+            flex-direction: column; /* 確保內容垂直堆疊 */
+            padding: 1.5rem; /* 增加整體內邊距 */
+            /* 響應式安全：確保在小螢幕上不會溢出 */
+            max-width: 95vw;
+        }
+
+        /* 自訂按鈕的基本樣式，強制為圓形，固定大小 */
+        .checkin-button {
+            width: 90px; /* 固定寬度 */
+            height: 90px; /* 固定高度 */
+            border-radius: 9999px; /* 強制圓形 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0.3rem; /* 內部微小邊距 */
+            font-size: 0.9rem; /* 調整字體大小以適應圓形 */
+            line-height: 1.1; /* 調整行高 */
+            flex-shrink: 0; /* 防止按鈕在 flex 容器中被壓縮 */
+        }
+
+        /* 自訂按鈕的活躍 (Active) 狀態樣式 */
+        .checkin-button.active {
+            background: linear-gradient(135deg, #FFDC35 0%, #FFC700 100%); /* 亮黃色漸層 */
+            color: #333; /* 文字改為深色 */
+            box-shadow: 0 4px 14px 0 rgba(255, 220, 53, 0.6); /* 配合新顏色更新陰影 */
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.3s;
+        }
+
+        /* 自訂按鈕的非活躍 (Inactive) 狀態樣式 */
+        .checkin-button.inactive {
+            background: #4b5563; /* 深灰色 */
+            color: #fff; /* 保持白色文字 */
+            box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            opacity: 0.6;
+            transition: transform 0.1s, opacity 0.3s;
+        }
+
+        /* 按鈕 hover 效果 */
+        .checkin-button.inactive:hover {
+            opacity: 0.8;
+            transform: translateY(-2px);
+        }
+        .checkin-button.active:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px 0 rgba(255, 220, 53, 0.8); /* 配合新顏色更新陰影 */
+        }
+
+        /* 遊戲結束狀態的特殊樣式 */
+        .game-over-overlay {
+            z-index: 20;
+            /* 調整透明度：從 0.85 降至 0.65 */
+            background-color: rgba(0, 0, 0, 0.65); /* 半透明深色背景 */
+            backdrop-filter: blur(5px); /* 模糊效果 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* 遊戲結束時所有按鈕變灰且不可點擊 */
+        .checkin-button.disabled {
+            background: #9ca3af !important; /* 淺灰色 */
+            color: #fff;
+            cursor: not-allowed;
+            opacity: 0.4;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+        /* 啟動畫面的背景圖片樣式 */
+        #splashScreen {
+            background-image: url('https://placehold.co/1152x400/222244/ffffff?text=Life+Habits+Dashboard'); 
+            background-size: cover; 
+            background-position: center; 
+            background-repeat: no-repeat;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+
+    <!-- 主要互動面板容器 -->
+    <div id="dashboard" class="dashboard-container bg-white rounded-xl shadow-2xl relative">
+        
+        <!-- 返回主頁 (Undo/Reset) 按鈕 - 位於右上角 -->
+        <!-- 初始狀態不加 hidden，交由 JS 處理狀態 -->
+        <button id="backToHomeButton" class="absolute top-4 right-4 text-gray-500 hover:text-red-600 transition duration-150 p-2 rounded-full bg-white/50 hover:bg-white shadow-lg z-50" title="返回主頁 / 重置">
+            <!-- Undo/Reset Icon (Lucide Rotate Ccw) -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.76 2.75L3 12zm0 0h3"/>
+            </svg>
+        </button>
+
+        <!-- 遊戲開始前的歡迎頁面 -->
+        <div id="splashScreen" 
+             class="absolute inset-0 rounded-xl z-40 flex items-end justify-center p-8">
+            
+            <!-- 按鈕置底且透明化 -->
+            <div class="text-center"> 
+                <button id="startButton" class="px-10 py-4 bg-white/20 hover:bg-white/40 text-white font-bold text-2xl rounded-lg shadow-lg transition duration-200 transform hover:scale-105 backdrop-blur-sm border border-white/50">
+                    Start
+                </button>
+            </div>
+        </div>
+
+        <!-- 遊戲結束遮罩 -->
+        <div id="gameOverOverlay" class="game-over-overlay absolute inset-0 rounded-xl hidden">
+            <div class="text-center p-8 bg-gray-900/90 rounded-xl border border-red-500 shadow-2xl">
+                <h2 class="text-4xl font-extrabold text-red-500 mb-4">遊戲結束 (Game Over)</h2>
+                <p class="text-xl text-gray-300 mb-6">人生分數歸零，所有習慣都已荒廢...</p>
+                <button id="restartButton" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-200">
+                    重新開始新的生活 (Restart)
+                </button>
+            </div>
+        </div>
+
+        <!-- 提示框 (絕對定位在 dashboard 內) -->
+        <div id="clickHint" class="absolute bg-yellow-400 text-gray-800 p-3 rounded-lg shadow-xl hidden z-30 pointer-events-none transition duration-300" style="min-width: 150px;">
+            <div class="font-bold">✨ 趕快點擊我！</div>
+            <div class="text-sm mt-1">恢復習慣可增加分數。</div>
+            <!-- 小箭頭 -->
+            <div class="w-3 h-3 bg-yellow-400 transform rotate-45 absolute bottom-[-6px] left-1/2 -translate-x-1/2"></div>
+        </div>
+
+
+        <!-- 標題 -->
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 text-center">人生分數互動面板</h1>
+            <p class="text-center text-gray-500">點擊變暗的習慣來恢復分數！</p>
+        </header>
+        
+        <!-- 加速警告區域 (使用 opacity-0 預留空間，防止佈局偏移) -->
+        <div id="accelerationMessage" class="text-center p-2 mb-4 bg-red-100 border border-red-400 text-red-700 font-extrabold rounded-lg shadow-md opacity-0 pointer-events-none transition duration-300 min-h-10 flex items-center justify-center">
+            <!-- 訊息將透過 JS 插入 -->
+        </div>
+
+        <!-- 進度條區塊 -->
+        <section class="mb-3">
+            <div class="flex justify-between items-center mb-2">
+                <!-- 調整後的標題和分數顯示佈局 -->
+                <h2 class="text-xl font-semibold text-gray-700">人生分數 (Life Score)</h2>
+                <!-- 分數顯示 -->
+                <span id="scoreDisplay" class="text-2xl font-extrabold text-indigo-600">100分</span>
+            </div>
+            <div class="w-full bg-gray-300 rounded-full h-8 shadow-inner">
+                <div id="progressBar" class="h-8 rounded-full transition-all duration-500 ease-out" style="width: 100%; background-color: #4f46e5;">
+                </div>
+            </div>
+        </section>
+
+        <!-- 打卡按鈕區塊 (7 個按鈕，使用 Flex 排列) -->
+        <!-- 移除 flex-grow，並增加 py-6 以增大垂直間距 -->
+        <section class="py-6 flex justify-center items-start space-x-4 overflow-x-auto">
+            <!-- 按鈕模板 (已修改為圓形) -->
+            <!-- 1. 學語言 -->
+            <button id="btn-lang" data-habit="學語言" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
+                學語言
+            </button>
+
+            <!-- 2. 專注學習3小時 -->
+            <button id="btn-study" data-habit="專注學習3小時" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
+                專注學習3小時
+            </button>
+
+            <!-- 3. 記帳 -->
+            <button id="btn-budget" data-habit="記帳" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
+                記帳
+            </button>
+
+            <!-- 4. 卡路里 -->
+            <button id="btn-calorie" data-habit="卡路里" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
+                卡路里
+            </button>
+
+            <!-- 5. 寫日記 -->
+            <button id="btn-diary" data-habit="寫日記" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
+                寫日記
+            </button>
+
+            <!-- 6. 跑步30分鐘 -->
+            <button id="btn-run" data-habit="跑步30分鐘" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
+                跑步30分鐘
+            </button>
+
+            <!-- 7. 睡滿8小時 -->
+            <button id="btn-sleep" data-habit="睡滿8小時" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
+                睡滿8小時
+            </button>
+        </section>
+
+        <!-- 遊戲訊息提示 (已清空) -->
+        <footer class="text-center text-sm text-gray-500">
+            <!-- 頁尾已清空，確保內容不被壓縮 -->
+        </footer>
+
+    </div>
+
+    <script>
+        // JavaScript 遊戲邏輯
+        
+        // --- 設定與初始化 ---
+        const INITIAL_SCORE = 100;
+        const SCORE_PENALTY_AMOUNT = 15; // 習慣變暗時的即時扣分：15 分 
+        const BASE_RECOVER_AMOUNT = 15;  // 點擊恢復的分數 (基礎值)
+        const BONUS_RECOVER_AMOUNT = 20; // 前 20 秒點擊恢復的分數 (獎勵值)
+        
+        // 持續衰減相關設定
+        const SCORE_DECAY_RATE = 1; // 每個不活躍習慣每秒扣 1 分 (隨時間扣分)
+        const DECAY_INTERVAL_MS = 1000; // 扣分間隔 (1秒)
+        
+        // 隨機變暗的間隔設定
+        const DARKEN_INTERVAL_SLOW_MS = 2000; // 初始間隔: 2 秒
+        // 加速後間隔調整為 800 毫秒 (0.8 秒)
+        const DARKEN_INTERVAL_FAST_MS = 800;  // 加速後間隔: 0.8 秒 
+        const ACCELERATION_TIME_MS = 15000; // 15 秒後加速 
+        const BONUS_RECOVER_TIME_MS = 20000; // 獎勵恢復時間 (20 秒)
+
+        // 一次變暗第二個習慣的機率 (30%)
+        const CHANCE_TO_DARKEN_TWO = 0.3; 
+
+        let score = INITIAL_SCORE;
+        let gameLoopInterval = null; // 用於持續扣分
+        let darkenInterval = null; // 用於隨機變暗和即時扣分
+        let accelerationTimeout = null; // 用於 30 秒後加速
+        let isGameOver = false;
+        let isFirstDarkening = true; // 追蹤是否為第一次變暗
+        let gameStartTime = 0; // 追蹤遊戲開始時間
+
+        // UI 元素
+        const dashboard = document.getElementById('dashboard'); // 獲取主容器
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const progressBar = document.getElementById('progressBar');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const restartButton = document.getElementById('restartButton');
+        const checkinButtons = document.querySelectorAll('.checkin-button');
+        const clickHint = document.getElementById('clickHint'); // 獲取提示框
+        const splashScreen = document.getElementById('splashScreen'); // 獲取歡迎畫面
+        const startButton = document.getElementById('startButton');   // 獲取開始按鈕
+        const accelerationMessage = document.getElementById('accelerationMessage'); // 獲取加速訊息區域
+        const backToHomeButton = document.getElementById('backToHomeButton'); // 新增: 返回主頁按鈕
+
+        // 習慣狀態物件 (在 initApp 時動態填充 element)
+        const habits = {
+            'btn-lang': { name: '學語言', active: true, element: null },
+            'btn-study': { name: '專注學習3小時', active: true, element: null },
+            'btn-budget': { name: '記帳', active: true, element: null },
+            'btn-calorie': { name: '卡路里', active: true, element: null },
+            'btn-diary': { name: '寫日記', active: true, element: null },
+            'btn-run': { name: '跑步30分鐘', active: true, element: null },
+            'btn-sleep': { name: '睡滿8小時', active: true, element: null },
+        };
+
+
+        // --- 核心功能 ---
+
+        /**
+         * 顯示點擊提示框
+         * @param {HTMLElement} targetElement - 要指向的按鈕元素
+         */
+        function showClickHint(targetElement) {
+            // 獲取按鈕和主儀表板的相對位置資訊
+            const rect = targetElement.getBoundingClientRect();
+            const dashboardRect = dashboard.getBoundingClientRect(); 
+
+            // 計算提示框在儀表板中的絕對位置
+            const top = rect.top - dashboardRect.top;
+            const left = rect.left - dashboardRect.left + (rect.width / 2);
+
+            // 調整提示框位置，讓它出現在按鈕的上方並居中對齊
+            clickHint.style.top = `${top}px`;
+            clickHint.style.left = `${left}px`;
+            // 使用 CSS Transform 進行微調，讓提示框向上移動自身高度並向左移動自身寬度的一半，達成置中效果
+            clickHint.style.transform = 'translate(-50%, calc(-100% - 10px))'; 
+
+            clickHint.classList.remove('hidden');
+        }
+
+        /**
+         * 更新 UI 顯示 (分數條、分數文本、按鈕狀態)
+         */
+        function updateUI() {
+            // 確保分數在 0 到 100 之間
+            score = Math.max(0, Math.min(100, score));
+            
+            // 1. 更新分數顯示 (取整數)
+            scoreDisplay.textContent = `${Math.round(score)}分`;
+            
+            // 2. 更新進度條 (使用原始分數)
+            const percent = score;
+            progressBar.style.width = `${percent}%`;
+
+            // 調整進度條顏色 (高分藍色，低分紅色)
+            let color;
+            if (percent > 70) {
+                color = '#4f46e5'; // 藍紫色
+            } else if (percent > 30) {
+                color = '#f59e0b'; // 琥珀色/橘色
+            } else {
+                color = '#ef4444'; // 紅色
+            }
+            progressBar.style.backgroundColor = color;
+            
+            // 3. 檢查遊戲是否結束
+            if (score <= 0 && !isGameOver) {
+                endGame();
+            }
+        }
+        
+        /**
+         * 加快遊戲節奏 (15 秒後觸發)
+         */
+        function accelerateGame() {
+            if (isGameOver) return;
+
+            // 清除當前的隨機變暗計時器
+            if (darkenInterval) clearInterval(darkenInterval);
+            
+            // 使用新的快速間隔 (0.8 秒) 啟動計時器
+            darkenInterval = setInterval(randomlyDarkenHabit, DARKEN_INTERVAL_FAST_MS);
+
+            // 顯示加速提示文字
+            accelerationMessage.textContent = "歐買尬，小庭進入進入繁忙的期中考週！！";
+            // 移除 opacity-0 和 pointer-events-none 讓訊息出現
+            accelerationMessage.classList.remove('opacity-0', 'pointer-events-none'); 
+
+            // 5 秒後隱藏提示
+            setTimeout(() => {
+                // 重新添加 opacity-0 和 pointer-events-none 讓訊息消失但保留空間
+                accelerationMessage.classList.add('opacity-0', 'pointer-events-none'); 
+            }, 5000); 
+        }
+
+        /**
+         * 處理隨時間持續扣分
+         */
+        function gameLoop() {
+            if (isGameOver) return;
+
+            // 計算當前不活躍的習慣數
+            const inactiveHabits = Object.values(habits).filter(h => !h.active).length;
+            
+            // 根據不活躍習慣數計算總扣分 (每秒持續扣分)
+            const totalDecay = inactiveHabits * SCORE_DECAY_RATE; // 每個不活躍習慣扣 1 分
+            score -= totalDecay;
+            
+            updateUI();
+        }
+
+        /**
+         * 將一個習慣設為非活躍並扣分
+         * @param {string} habitId - 要變暗的習慣 ID
+         */
+        function darkenSingleHabit(habitId) {
+            const habit = habits[habitId];
+            
+            // 如果已經不活躍，則跳過
+            if (!habit || !habit.active) return;
+
+            // 設為非活躍
+            habit.active = false;
+            habit.element.classList.remove('active');
+            habit.element.classList.add('inactive');
+            
+            // 習慣變暗時即時扣除 15 分
+            score -= SCORE_PENALTY_AMOUNT; 
+
+            // 首次變暗時顯示提示框
+            if (isFirstDarkening) {
+                isFirstDarkening = false; // 只顯示一次
+                showClickHint(habit.element);
+            }
+        }
+
+        /**
+         * 隨機將一個或兩個活躍習慣變暗 (非活躍)
+         */
+        function randomlyDarkenHabit() {
+            if (isGameOver) return;
+            
+            let activeHabitKeys = Object.keys(habits).filter(key => habits[key].active);
+            
+            if (activeHabitKeys.length === 0) return;
+            
+            // 1. 至少變暗第一個習慣
+            const randomKey1 = activeHabitKeys[Math.floor(Math.random() * activeHabitKeys.length)];
+            darkenSingleHabit(randomKey1);
+            
+            // 2. 從剩餘的活躍習慣中，隨機選擇第二個變暗 (30% 機率)
+            activeHabitKeys = activeHabitKeys.filter(key => key !== randomKey1); // 排除第一個已變暗的習慣
+            
+            if (activeHabitKeys.length > 0 && Math.random() < CHANCE_TO_DARKEN_TWO) {
+                const randomKey2 = activeHabitKeys[Math.floor(Math.random() * activeHabitKeys.length)];
+                darkenSingleHabit(randomKey2);
+            }
+
+            updateUI();
+        }
+
+        /**
+         * 處理按鈕點擊事件 (恢復習慣)
+         * @param {string} habitId - 被點擊的按鈕 ID
+         */
+        function handleHabitClick(habitId) {
+            if (isGameOver) return;
+            
+            const habit = habits[habitId];
+
+            // 只有非活躍狀態才能點擊恢復
+            if (!habit.active) {
+                // 1. 恢復習慣狀態
+                habit.active = true;
+                habit.element.classList.remove('inactive');
+                habit.element.classList.add('active');
+                
+                // 2. 增加分數 - 根據時間決定增加量
+                const elapsedTime = Date.now() - gameStartTime;
+                let recoverAmount;
+
+                if (elapsedTime < BONUS_RECOVER_TIME_MS) {
+                    recoverAmount = BONUS_RECOVER_AMOUNT; // 20 分 (前 20 秒獎勵)
+                } else {
+                    recoverAmount = BASE_RECOVER_AMOUNT; // 15 分 (基礎恢復)
+                }
+
+                score += recoverAmount;
+
+                // 3. 點擊恢復習慣時，如果提示框顯示中，則隱藏它
+                if (!clickHint.classList.contains('hidden')) {
+                    clickHint.classList.add('hidden');
+                }
+
+                // 4. 更新 UI
+                updateUI();
+            }
+        }
+
+        /**
+         * 停止遊戲循環並返回歡迎畫面
+         */
+        function returnToSplashScreen() {
+            // 清除所有遊戲相關的計時器和延時
+            if (darkenInterval !== null) {
+                clearInterval(darkenInterval);
+                darkenInterval = null;
+            }
+            if (gameLoopInterval !== null) {
+                clearInterval(gameLoopInterval); 
+                gameLoopInterval = null;
+            }
+            if (accelerationTimeout !== null) {
+                clearTimeout(accelerationTimeout); 
+                accelerationTimeout = null;
+            }
+            
+            // 隱藏所有遊戲元素，顯示歡迎畫面
+            gameOverOverlay.classList.add('hidden');
+            splashScreen.classList.remove('hidden'); 
+            
+            // 隱藏返回按鈕 (回到歡迎頁面時)
+            backToHomeButton.classList.add('hidden');
+
+            // 隱藏所有提示
+            clickHint.classList.add('hidden');
+            accelerationMessage.classList.add('opacity-0', 'pointer-events-none');
+            
+            // 確保按鈕被重置
+            Object.values(habits).forEach(habit => {
+                // 移除所有點擊事件
+                if (habit.element) habit.element.onclick = null;
+                // 重置視覺狀態
+                if (habit.element) {
+                    habit.active = true;
+                    habit.element.classList.remove('inactive', 'disabled');
+                    habit.element.classList.add('active'); 
+                }
+            });
+
+            isGameOver = false; // 重置遊戲狀態
+            score = INITIAL_SCORE; // 重置分數
+            updateUI(); // 更新 UI
+        }
+
+
+        /**
+         * 啟動遊戲 (開始計時器和循環)
+         */
+        function startGameLoop() {
+            // 重置狀態
+            isGameOver = false;
+            score = INITIAL_SCORE;
+            gameOverOverlay.classList.add('hidden');
+            splashScreen.classList.add('hidden'); // 隱藏歡迎畫面
+            isFirstDarkening = true; // 重置首次變暗旗標
+            clickHint.classList.add('hidden'); // 確保提示框隱藏
+            gameStartTime = Date.now(); // 記錄遊戲開始時間
+            
+            // 顯示返回按鈕 (遊戲進行中)
+            backToHomeButton.classList.remove('hidden');
+
+            // 清除現有的計時器和延時
+            if (darkenInterval !== null) {
+                clearInterval(darkenInterval);
+                darkenInterval = null;
+            }
+            if (gameLoopInterval !== null) {
+                clearInterval(gameLoopInterval); 
+                gameLoopInterval = null;
+            }
+            if (accelerationTimeout !== null) {
+                clearTimeout(accelerationTimeout); 
+                accelerationTimeout = null;
+            }
+            
+            // 重置所有習慣為活躍並設置點擊事件
+            Object.values(habits).forEach(habit => {
+                if (habit.element) {
+                    habit.active = true;
+                    habit.element.classList.remove('inactive', 'disabled');
+                    habit.element.classList.add('active');
+                    // 重新啟用點擊事件
+                    habit.element.onclick = () => handleHabitClick(habit.element.id);
+                }
+            });
+            
+            // 確保加速訊息隱藏 (使用 opacity-0)
+            accelerationMessage.classList.add('opacity-0', 'pointer-events-none');
+
+            // 1. 初始隨機變暗 (即時扣分 15 分) - 每 2 秒 (慢速)
+            darkenInterval = setInterval(randomlyDarkenHabit, DARKEN_INTERVAL_SLOW_MS);
+            
+            // 2. 設定 15 秒後加速
+            accelerationTimeout = setTimeout(accelerateGame, ACCELERATION_TIME_MS);
+
+            // 3. 持續衰減 (每秒扣 1 分) - 每 1 秒
+            gameLoopInterval = setInterval(gameLoop, DECAY_INTERVAL_MS);
+
+            updateUI();
+        }
+
+        /**
+         * 結束遊戲
+         */
+        function endGame() {
+            if (isGameOver) return; // 防止重複執行
+            isGameOver = true;
+
+            // 清除所有計時器
+            if (darkenInterval !== null) clearInterval(darkenInterval);
+            if (gameLoopInterval !== null) clearInterval(gameLoopInterval); 
+            if (accelerationTimeout !== null) clearTimeout(accelerationTimeout); 
+            
+            clickHint.classList.add('hidden'); // 遊戲結束時隱藏提示框
+            // 遊戲結束時隱藏加速提示 (使用 opacity-0)
+            accelerationMessage.classList.add('opacity-0', 'pointer-events-none'); 
+            
+            // 隱藏返回按鈕 (遊戲結束時)
+            backToHomeButton.classList.add('hidden');
+            
+            // 確保分數顯示為 0
+            score = 0;
+            updateUI(); 
+
+            // 禁用所有按鈕並刷灰
+            Object.values(habits).forEach(habit => {
+                if (habit.element) {
+                    habit.element.classList.remove('active', 'inactive');
+                    habit.element.classList.add('disabled');
+                    // 移除點擊事件
+                    habit.element.onclick = null; 
+                }
+            });
+
+            // 顯示遊戲結束遮罩
+            gameOverOverlay.classList.remove('hidden');
+        }
+
+        /**
+         * 初始化應用程式 (設定事件監聽器並顯示歡迎畫面)
+         */
+        function initApp() {
+            // 在此處將 DOM 元素賦值給 habits 物件
+            habits['btn-lang'].element = document.getElementById('btn-lang');
+            habits['btn-study'].element = document.getElementById('btn-study');
+            habits['btn-budget'].element = document.getElementById('btn-budget');
+            habits['btn-calorie'].element = document.getElementById('btn-calorie');
+            habits['btn-diary'].element = document.getElementById('btn-diary');
+            habits['btn-run'].element = document.getElementById('btn-run');
+            habits['btn-sleep'].element = document.getElementById('btn-sleep');
+
+            // 為所有打卡按鈕添加點擊事件
+            checkinButtons.forEach(button => {
+                // 初始化時先設定為 null，等遊戲開始才啟用
+                button.onclick = null; 
+            });
+
+            // 重新開始按鈕事件 (在 Game Over 畫面中)
+            restartButton.onclick = startGameLoop;
+            
+            // 開始遊戲按鈕事件 (在 Splash Screen 畫面中)
+            startButton.onclick = startGameLoop;
+
+            // 返回主頁按鈕事件 (在右上角)
+            backToHomeButton.onclick = returnToSplashScreen;
+            
+            // 初始狀態：隱藏返回按鈕 (因為顯示的是歡迎頁面)
+            backToHomeButton.classList.add('hidden');
+
+            // 確保歡迎畫面顯示在最前面
+            splashScreen.classList.remove('hidden');
+            updateUI(); // 確保初始分數顯示正確
+        }
+
+        // 首次加載時啟動應用程式
+        window.onload = initApp;
+
+    </script>
+</body>
+</html>
