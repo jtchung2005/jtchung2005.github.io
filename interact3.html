@@ -13,15 +13,14 @@
             font-family: 'Inter', 'Noto Sans TC', "Microsoft JhengHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
         }
         
-        /* 確保主要容器的寬度為 1152px，並讓高度根據內容自動調整 */
+        /* 確保主要容器的響應性 */
         .dashboard-container {
-            width: 1152px; /* 固定寬度 */
+            /* 移除固定寬度 width: 1152px; */
             margin: auto;
             display: flex;
             flex-direction: column; /* 確保內容垂直堆疊 */
-            padding: 1.5rem; /* 增加整體內邊距 */
-            /* 響應式安全：確保在小螢幕上不會溢出 */
-            max-width: 95vw;
+            /* 由於在 HTML 元素上應用了 p-6，這裡移除了 padding: 1.5rem */
+            max-width: 95vw; /* 響應式安全：確保在小螢幕上不會溢出 */
         }
 
         /* 自訂按鈕的基本樣式，強制為圓形，固定大小 */
@@ -36,7 +35,7 @@
             padding: 0.3rem; /* 內部微小邊距 */
             font-size: 0.9rem; /* 調整字體大小以適應圓形 */
             line-height: 1.1; /* 調整行高 */
-            flex-shrink: 0; /* 防止按鈕在 flex 容器中被壓縮 */
+            flex-shrink: 0; /* 防止按鈕在 flex 容器中被壓縮 (在 grid 布局中仍是好習慣) */
         }
 
         /* 自訂按鈕的活躍 (Active) 狀態樣式 */
@@ -87,22 +86,22 @@
             box-shadow: none !important;
             transform: none !important;
         }
-        /* 啟動畫面的背景圖片樣式 */
+        /* 啟動畫面的背景圖片樣式 - 使用彈性寬度的佔位圖 */
         #splashScreen {
-            background-image: url('https://placehold.co/1152x400/222244/ffffff?text=Life+Habits+Dashboard'); 
+            background-image: url('https://placehold.co/1000x300/222244/ffffff?text=Life+Habits+Dashboard'); 
             background-size: cover; 
             background-position: center; 
             background-repeat: no-repeat;
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4 sm:p-6">
 
-    <!-- 主要互動面板容器 -->
-    <div id="dashboard" class="dashboard-container bg-white rounded-xl shadow-2xl relative">
+    <!-- 主要互動面板容器 - 設置響應式最大寬度和自動居中 -->
+    <!-- max-w-6xl 約為 1152px，w-full 確保在小螢幕上填滿可用寬度 -->
+    <div id="dashboard" class="max-w-6xl w-full dashboard-container bg-white rounded-xl shadow-2xl relative p-6">
         
         <!-- 返回主頁 (Undo/Reset) 按鈕 - 位於右上角 -->
-        <!-- 初始狀態不加 hidden，交由 JS 處理狀態 -->
         <button id="backToHomeButton" class="absolute top-4 right-4 text-gray-500 hover:text-red-600 transition duration-150 p-2 rounded-full bg-white/50 hover:bg-white shadow-lg z-50" title="返回主頁 / 重置">
             <!-- Undo/Reset Icon (Lucide Rotate Ccw) -->
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw">
@@ -167,9 +166,11 @@
             </div>
         </section>
 
-        <!-- 打卡按鈕區塊 (7 個按鈕，使用 Flex 排列) -->
-        <!-- 移除 flex-grow，並增加 py-6 以增大垂直間距 -->
-        <section class="py-6 flex justify-center items-start space-x-4 overflow-x-auto">
+        <!-- 打卡按鈕區塊 (7 個按鈕) -->
+        <!-- RWD 調整: 間距維持 gap-2，中等螢幕(md)提升至 7 欄以維持水平，且保持置中(justify-items-center) -->
+        <!-- 手機(默認): grid-cols-4 | 小螢幕: sm:grid-cols-5 | 中等螢幕: md:grid-cols-7 | 大螢幕: lg:grid-cols-7 -->
+        <section class="py-6 grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-7 gap-2 justify-items-center">
+            
             <!-- 按鈕模板 (已修改為圓形) -->
             <!-- 1. 學語言 -->
             <button id="btn-lang" data-habit="學語言" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">
@@ -230,7 +231,7 @@
         // 隨機變暗的間隔設定
         const DARKEN_INTERVAL_SLOW_MS = 2000; // 初始間隔: 2 秒
         // 加速後間隔調整為 800 毫秒 (0.8 秒)
-        const DARKEN_INTERVAL_FAST_MS = 800;  // 加速後間隔: 0.8 秒 
+        const DARKEN_INTERVAL_FAST_MS = 500;  // 加速後間隔: 0.8 秒 
         const ACCELERATION_TIME_MS = 15000; // 15 秒後加速 
         const BONUS_RECOVER_TIME_MS = 20000; // 獎勵恢復時間 (20 秒)
 
