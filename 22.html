@@ -1,0 +1,151 @@
+<!-- === Life Habits Dashboard === -->
+<!-- HTML 結構 -->
+<div id="dashboard" class="max-w-[1152px] w-full dashboard-container bg-white rounded-xl shadow-2xl relative p-6">
+    
+    <!-- 返回主頁按鈕 -->
+    <button id="backToHomeButton" class="absolute top-4 right-4 text-gray-500 hover:text-red-600 transition duration-150 p-2 rounded-full bg-white/50 hover:bg-white shadow-lg z-50" title="返回主頁 / 重置">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.76 2.75L3 12zm0 0h3"/>
+        </svg>
+    </button>
+
+    <!-- 歡迎畫面 -->
+    <div id="splashScreen" class="absolute inset-0 rounded-xl z-40 flex items-end justify-center p-8">
+        <div class="text-center">
+            <button id="startButton" class="px-10 py-4 bg-white/20 hover:bg-white/40 text-white font-bold text-2xl rounded-lg shadow-lg transition duration-200 transform hover:scale-105 backdrop-blur-sm border border-white/50">
+                Start
+            </button>
+        </div>
+    </div>
+
+    <!-- 遊戲結束遮罩 -->
+    <div id="gameOverOverlay" class="game-over-overlay absolute inset-0 rounded-xl hidden">
+        <div class="text-center p-8 bg-gray-900/90 rounded-xl border border-red-500 shadow-2xl">
+            <h2 class="text-4xl font-extrabold text-red-500 mb-4">App都未簽到</h2>
+            <p class="text-xl text-gray-300 mb-6">人生分數歸零，自我價值歸零?</p>
+            <button id="restartButton" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-200">
+                Restart
+            </button>
+        </div>
+    </div>
+
+    <!-- 提示框 -->
+    <div id="clickHint" class="absolute bg-yellow-400 text-gray-800 p-3 rounded-lg shadow-xl hidden z-30 pointer-events-none transition duration-300" style="min-width: 150px;">
+        <div class="font-bold">點擊簽到</div>
+        <div class="text-sm mt-1">增加分數！</div>
+        <div class="w-3 h-3 bg-yellow-400 transform rotate-45 absolute bottom-[-6px] left-1/2 -translate-x-1/2"></div>
+    </div>
+
+    <!-- 標題與分數 -->
+    <header class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 text-center">小庭的人生分數</h1>
+        <p class="text-center text-gray-500">點擊變暗的任務完成每日簽到！</p>
+    </header>
+
+    <!-- 加速訊息區 -->
+    <div id="accelerationMessage" class="text-center p-2 mb-4 bg-red-100 border border-red-400 text-red-700 font-extrabold rounded-lg shadow-md opacity-0 pointer-events-none transition duration-300 min-h-10 flex items-center justify-center"></div>
+
+    <!-- 分數進度條 -->
+    <section class="mb-3">
+        <div class="flex justify-between items-center mb-2">
+            <h2 class="text-xl font-semibold text-gray-700">人生分數</h2>
+            <span id="scoreDisplay" class="text-2xl font-extrabold text-indigo-600">100分</span>
+        </div>
+        <div class="w-full bg-gray-300 rounded-full h-8 shadow-inner">
+            <div id="progressBar" class="h-8 rounded-full transition-all duration-500 ease-out" style="width: 100%; background-color: #4f46e5;"></div>
+        </div>
+    </section>
+
+    <!-- 打卡按鈕區 -->
+    <section class="py-6 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 lg:grid-cols-7 gap-2 justify-items-center">
+        <button id="btn-lang" data-habit="學語言" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">學語言</button>
+        <button id="btn-study" data-habit="專注學習3小時" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">專注學習3小時</button>
+        <button id="btn-budget" data-habit="記帳" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">記帳</button>
+        <button id="btn-calorie" data-habit="卡路里" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">計算卡路里</button>
+        <button id="btn-diary" data-habit="寫日記" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">寫日記</button>
+        <button id="btn-run" data-habit="跑步30分鐘" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">跑步30分鐘</button>
+        <button id="btn-sleep" data-habit="睡滿8小時" class="checkin-button active text-white font-bold shadow-md transition transform duration-300">睡滿8小時</button>
+    </section>
+
+</div>
+
+<!-- === CSS === -->
+<style>
+.dashboard-container {
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    max-width: 95vw;
+    font-family: 'Inter', 'Noto Sans TC', "Microsoft JhengHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+.checkin-button {
+    width: 90px;
+    height: 90px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0.3rem;
+    font-size: 0.9rem;
+    line-height: 1.1;
+    flex-shrink: 0;
+}
+.checkin-button.active { background: linear-gradient(135deg, #FFDC35 0%, #FFC700 100%); color: #333; box-shadow: 0 4px 14px 0 rgba(255, 220, 53, 0.6); cursor: pointer; transition: transform 0.1s, box-shadow 0.3s; }
+.checkin-button.inactive { background: #4b5563; color: #fff; box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2); cursor: pointer; opacity: 0.6; transition: transform 0.1s, opacity 0.3s; }
+.checkin-button.inactive:hover { opacity: 0.8; transform: translateY(-2px); }
+.checkin-button.active:hover { transform: translateY(-3px); box-shadow: 0 6px 16px 0 rgba(255, 220, 53, 0.8); }
+.game-over-overlay { z-index: 20; background-color: rgba(0,0,0,0.65); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; }
+.checkin-button.disabled { background: #9ca3af !important; color: #fff; cursor: not-allowed; opacity: 0.4; box-shadow: none !important; transform: none !important; }
+#splashScreen { background-image: url('https://placehold.co/1000x300/222244/ffffff?text=Life+Habits+Dashboard'); background-size: cover; background-position: center; background-repeat: no-repeat; }
+</style>
+
+<!-- === JS === -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const startButton = document.getElementById("startButton");
+    const splashScreen = document.getElementById("splashScreen");
+    const gameOverOverlay = document.getElementById("gameOverOverlay");
+    const restartButton = document.getElementById("restartButton");
+    const backToHomeButton = document.getElementById("backToHomeButton");
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const progressBar = document.getElementById("progressBar");
+    const checkinButtons = document.querySelectorAll(".checkin-button");
+
+    let score = 100;
+
+    startButton.addEventListener("click", () => {
+        splashScreen.style.display = "none";
+    });
+
+    restartButton.addEventListener("click", () => {
+        gameOverOverlay.classList.add("hidden");
+        checkinButtons.forEach(btn => btn.classList.add("active"));
+        score = 100;
+        updateScoreDisplay();
+    });
+
+    backToHomeButton.addEventListener("click", () => {
+        location.reload();
+    });
+
+    checkinButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            if (btn.classList.contains("active")) {
+                btn.classList.remove("active");
+                btn.classList.add("inactive");
+                score -= 10;
+                if(score <= 0) {
+                    gameOverOverlay.classList.remove("hidden");
+                }
+                updateScoreDisplay();
+            }
+        });
+    });
+
+    function updateScoreDisplay() {
+        scoreDisplay.textContent = `${score}分`;
+        progressBar.style.width = `${score}%`;
+    }
+});
+</script>
