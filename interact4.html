@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>內在與外在動機直條圖</title>
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 設定主體字型為 Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        /* New style for the draggable handle */
+        #sliderHandle {
+            cursor: grab;
+            touch-action: none; /* 防止行動裝置誤判為捲動 */
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 min-h-screen flex items-center justify-center">
+
+    <div id="chart-container" class="w-full max-w-2xl bg-white p-6 sm:p-10 rounded-xl shadow-2xl transition-all duration-300">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">內在動機與外在動機的非線性關係</h1>
+        <p class="text-center text-gray-500 mb-8">請拖曳右側的**外在動機**拉把，觀察動機的「過度辯證效應」</p>
+
+        <!-- 圖表和拉把的父容器 -->
+        <div class="flex justify-center items-end gap-4">
+            
+            <!-- 圖表區域 (Bar Chart Area) - 包含兩條直條圖 -->
+            <div id="barChartArea" class="flex justify-center items-end h-80 gap-8 border-b-2 border-gray-200 relative w-64 sm:w-80">
+                
+                <!-- Extrinsic Reference Line (水平虛線) -->
+                <!-- 移除了 transition-all duration-100 確保即時反應 -->
+                <div id="extrinsicRefLine" class="absolute w-full border-t-2 border-dashed border-green-500 opacity-70" style="bottom: 0;"></div>
+
+                <!-- 內在動機 (Intrinsic Motivation) 條 -->
+                <div class="flex flex-col items-center w-24 relative pointer-events-none">
+                    <!-- 內在動機趨勢箭頭 -->
+                    <div id="intrinsicArrow" class="absolute -top-10 w-full flex justify-center opacity-0 transition-opacity duration-300"> 
+                        <!-- SVG 將被動態注入 -->
+                    </div>
+                    <!-- 內在動機保留 duration-500 實現平滑的心理反應動畫 -->
+                    <div id="intrinsicBar" class="w-full bg-blue-500 rounded-t-lg transition-all duration-500 ease-out shadow-lg" style="height: 0;">
+                    </div>
+                </div>
+
+                <!-- 外在動機 (Extrinsic Motivation) 條 -->
+                <div id="extrinsicBarContainer" class="flex flex-col items-center w-24 relative pointer-events-none">
+                    <!-- 外在動機已移除所有 transition，實現即時反應 -->
+                    <div id="extrinsicBar" class="w-full bg-green-500 rounded-t-lg shadow-lg relative" style="height: 0;">
+                        <!-- 原拖曳手把已移除 -->
+                    </div>
+                </div>
+                
+            </div>
+            
+            <!-- 垂直滑桿軌道 (Slider Track) -->
+            <div id="sliderTrack" class="h-80 w-4 bg-gray-200 rounded-full relative ml-4 flex items-end">
+                <!-- 滑桿把手 (Slider Handle) -->
+                <div id="sliderHandle" class="absolute w-6 h-6 bg-green-700 rounded-full shadow-xl border-2 border-white transform -translate-x-1/2 left-1/2" style="bottom: 0;">
+                    <!-- 提示框結構 (Tooltip) -->
+                    <div id="dragPromptTooltip" class="absolute right-full top-1/2 transform translate-x-1 -translate-y-1/2 bg-yellow-50 border border-yellow-300 text-yellow-800 text-sm font-medium p-2 rounded-lg shadow-xl whitespace-nowrap transition-opacity duration-300 z-10 opacity-100">
+                        點擊並拖曳我！
+                        <!-- 小箭頭指向把手 -->
+                        <div class="absolute left-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-l-8 border-l-yellow-300"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        
+        <!-- 軸標籤區域 (Axis Labels Area) -->
+        <div class="flex justify-center gap-8 pt-2">
+            <!-- 內在動機標籤 -->
+            <div class="flex flex-col items-center w-24 ml-[2.5rem]"> <!-- 調整 margin 以對齊 barChartArea -->
+                <div class="text-sm font-semibold text-blue-600">內在動機</div>
+            </div>
+            <!-- 外在動機標籤 -->
+            <div class="flex flex-col items-center w-24">
+                <div class="text-sm font-semibold text-green-600">外在動機</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM 元素獲取
+        const extrinsicBar = document.getElementById('extrinsicBar');
+        const intrinsicBar = document.getElementById('intrinsicBar');
+        const intrinsicArrow = document.getElementById('intrinsicArrow');
+        const dragPromptTooltip = document.getElementById('dragPromptTooltip'); 
+        const chartContainer = document.getElementById('barChartArea'); 
+        
+        const sliderTrack = document.getElementById('sliderTrack'); // 新增滑軌元素
+        const sliderHandle = document.getElementById('sliderHandle'); // 新增滑把元素
+        const extrinsicRefLine = document.getElementById('extrinsicRefLine'); // 新增參考線元素
+        
+        // SVG Definitions
+        const UP_ARROW_SVG = `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>`;
+        const DOWN_ARROW_SVG = `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>`;
+        
+        let SLIDER_HEIGHT; // 滑軌的實際像素高度
+        let MAX_BAR_HEIGHT; // 直條圖的實際像素高度
+        
+        // 全域拖曳狀態
+        let isDragging = false;
+        let hideArrowTimeout; // 用於儲存延遲隱藏的定時器
+        
+        // 動機非線性計算函數 (核心邏輯，無變動)
+        function calculateIntrinsicMotivation(extrinsic) {
+            const E = parseFloat(extrinsic);
+            const threshold = 40; 
+            const baseIM = 85; 
+            let I; 
+
+            if (E <= threshold) {
+                // 階段 1: 微微隨著外在動機升高
+                I = baseIM + (E * 0.3); 
+                I = Math.min(100, I);
+            } else {
+                // 階段 2: 急劇下降 (擠出效應 - Overjustification Effect)
+                const IM_at_threshold = baseIM + (threshold * 0.3);
+                const dropRate = 2.0; 
+                I = IM_at_threshold - ((E - threshold) * dropRate);
+                I = Math.max(10, I); // 最低限制
+            }
+            return { value: I, threshold: threshold };
+        }
+
+        // 更新圖表的函數
+        function updateChart(extrinsicValue) {
+            // 1. 計算內在動機值和閾值
+            const { value: intrinsicValue, threshold } = calculateIntrinsicMotivation(extrinsicValue);
+
+            // 2. 計算並設定直條圖的高度 (使用 100% 比例)
+            const extrinsicHeight = (extrinsicValue / 100) * MAX_BAR_HEIGHT;
+            const intrinsicHeight = (intrinsicValue / 100) * MAX_BAR_HEIGHT;
+
+            // 3. 設定 HTML 元素的 style 屬性
+            extrinsicBar.style.height = `${extrinsicHeight}px`;
+            intrinsicBar.style.height = `${intrinsicHeight}px`;
+
+            // 4. 更新滑把的位置 (基於滑軌高度)
+            const handleBottom = (extrinsicValue / 100) * SLIDER_HEIGHT;
+            sliderHandle.style.bottom = `${handleBottom}px`; 
+            
+            // 5. 更新參考線的位置 (即時反應)
+            extrinsicRefLine.style.bottom = `${extrinsicHeight}px`;
+
+            // 6. 根據內在動機水平調整顏色 (視覺警示：低於 40% 轉為紅色)
+            if (intrinsicValue < 40) {
+                intrinsicBar.classList.remove('bg-blue-500');
+                intrinsicBar.classList.add('bg-red-500'); 
+            } else {
+                intrinsicBar.classList.remove('bg-red-500');
+                intrinsicBar.classList.add('bg-blue-500');
+            }
+
+            // 7. 根據擠出效應的階段顯示箭頭
+            if (isDragging) {
+                clearTimeout(hideArrowTimeout); 
+                intrinsicArrow.style.opacity = 1;
+                intrinsicArrow.classList.remove('text-blue-500', 'text-red-500', 'animate-pulse');
+
+                if (extrinsicValue <= threshold) { 
+                    intrinsicArrow.innerHTML = UP_ARROW_SVG;
+                    intrinsicArrow.classList.add('text-blue-500');
+                } else {
+                    intrinsicArrow.innerHTML = DOWN_ARROW_SVG;
+                    intrinsicArrow.classList.add('text-red-500', 'animate-pulse'); 
+                }
+            }
+        }
+
+        // 函數：從滑鼠/觸控 Y 座標計算外在動機值 (0-100)
+        function calculateExtrinsicValueFromY(clientY) {
+            const trackRect = sliderTrack.getBoundingClientRect();
+            // 滑軌底部位置
+            const trackBottom = trackRect.bottom;
+            
+            // 計算滑鼠/觸控位置與滑軌底部的距離
+            let heightPx = trackBottom - clientY;
+            
+            // 將高度限制在 0 到 SLIDER_HEIGHT 之間
+            heightPx = Math.max(0, Math.min(SLIDER_HEIGHT, heightPx));
+            
+            // 將高度（像素）轉換回動機值（0-100）
+            const newValue = (heightPx / SLIDER_HEIGHT) * 100;
+
+            return newValue;
+        }
+
+
+        // ** 拖曳邏輯 **
+
+        // 拖曳開始 (滑鼠/觸控)
+        const startDragging = (e) => {
+            e.preventDefault(); 
+            isDragging = true;
+            sliderHandle.style.cursor = 'grabbing'; // 更新把手 cursor
+            document.body.style.cursor = 'grabbing';
+            
+            // 隱藏提示框
+            dragPromptTooltip.style.opacity = '0';
+            dragPromptTooltip.style.pointerEvents = 'none';
+
+            // 處理觸控或滑鼠的 Y 座標
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            // 拖曳開始時立即更新，以顯示箭頭
+            updateChart(calculateExtrinsicValueFromY(clientY));
+        };
+        
+        sliderHandle.addEventListener('mousedown', startDragging);
+        sliderHandle.addEventListener('touchstart', startDragging);
+
+
+        // 拖曳移動 (滑鼠/觸控)
+        const onDragging = (e) => {
+            if (!isDragging) return;
+            
+            // 處理觸控或滑鼠的 Y 座標
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            if (clientY === undefined) return;
+
+            const newExtrinsicValue = calculateExtrinsicValueFromY(clientY);
+            
+            // 直接更新圖表視覺效果
+            updateChart(newExtrinsicValue);
+        };
+        
+        document.addEventListener('mousemove', onDragging);
+        document.addEventListener('touchmove', onDragging, { passive: false }); // 阻止滾動
+
+
+        // 拖曳結束 (滑鼠和觸控)
+        const stopDragging = () => {
+            if (isDragging) {
+                isDragging = false;
+                // 恢復 body 和把手預設 cursor
+                document.body.style.cursor = 'default';
+                sliderHandle.style.cursor = 'grab';
+
+                // 設定定時器在 500 毫秒後隱藏箭頭
+                hideArrowTimeout = setTimeout(() => {
+                    intrinsicArrow.style.opacity = 0;
+                }, 500); 
+            }
+        };
+
+        document.addEventListener('mouseup', stopDragging);
+        document.addEventListener('touchend', stopDragging);
+        document.addEventListener('touchcancel', stopDragging);
+
+
+        // 頁面載入時初始化圖表
+        document.addEventListener('DOMContentLoaded', () => {
+            // 取得實際的高度
+            SLIDER_HEIGHT = sliderTrack.clientHeight;
+            MAX_BAR_HEIGHT = chartContainer.clientHeight; // 直條圖的高度等於容器高度
+
+            // 初始值設定為 50
+            updateChart(50); 
+            // 初始狀態下隱藏箭頭
+            intrinsicArrow.style.opacity = 0;
+        });
+    </script>
+</body>
+</html>
