@@ -93,25 +93,43 @@
 
     <!-- 面板容器，固定 1152x648px 比例 --><div class="panel-container bg-gray-800 text-white rounded-2xl p-12 overflow-hidden relative">
 
-        <!-- 場景一：初始情境與決策 --><!-- 調整為 justify-end items-end 讓內容靠右下方 --><div id="scene-1" class="scene active w-full h-full flex-col justify-end items-end text-center p-12">
-            <!-- 調整 max-w-4xl 為 max-w-2xl，p-8 為 p-6 --><div class="bg-gray-900/80 p-6 rounded-xl backdrop-blur-sm shadow-2xl max-w-2xl flex flex-col items-center">
-                <div class="mb-5">
-                    <!-- 調整 text-7xl 為 text-6xl --><span class="text-6xl font-bold text-white" style="text-shadow: 0 0 15px rgba(255, 255, 255, 0.7);">360</span>
-                    <!-- 調整 text-4xl 為 text-3xl --><span class="text-3xl font-semibold text-gray-200 ml-3">天連續簽到！</span>
+        <!-- 場景一：初始情境與決策 -->
+        <!-- items-end: 讓內容靠右對齊 (整體靠右) -->
+        <!-- justify-end: 讓內容靠底部對齊 (整體靠下) -->
+        <div id="scene-1" class="scene active w-full h-full flex flex-col justify-end items-end p-12">
+            
+            <!-- 新增一個包裹層，限制整個內容區塊的寬度，並讓其靠右 (由父層 items-end 控制) -->
+            <div class="w-full max-w-xl">
+                
+                <!-- 內容區塊 (w-full 繼承 max-w-xl 寬度) -->
+                <div class="bg-gray-900/80 p-5 rounded-xl shadow-2xl w-full flex flex-col items-center text-white text-center mb-4">
+                    <div class="mb-4">
+                        <!-- 數字 360 加上發光效果 -->
+                        <span class="text-5xl font-bold text-white" style="text-shadow: 0 0 15px rgba(255, 255, 255, 0.9), 0 0 25px rgba(255, 255, 255, 0.7);">360</span>
+                        <!-- 單位 text-2xl，文字改回淺灰色 -->
+                        <span class="text-2xl font-semibold ml-2 text-gray-200">天連續簽到！</span>
+                    </div>
+                    <!-- 主文 text-base，文字改回淺灰色 -->
+                    <p class="text-base text-gray-200 mb-6 leading-relaxed">
+                        這是小庭在學習 App 中最引以為傲的紀錄。
+                        <br>
+                        然而，今天她重感冒，身體非常不舒服，只想好好休息。
+                        <br>
+                        <!-- 重點文字改為黃色，確保在深色背景上可讀 -->
+                        <span class="text-yellow-400 font-medium">如果今天「斷簽」，她將失去 360 天的紀錄，還會被踢出排行榜...</span>
+                    </p>
+                    <!-- 提示文字 text-lg，文字改回白色 -->
+                    <p class="text-lg font-semibold text-white">她應該...</p>
                 </div>
-                <!-- 調整 text-xl 為 text-lg，max-w-3xl 為 max-w-xl --><p class="text-lg text-gray-300 max-w-xl mb-8 leading-relaxed">
-                    這是小庭在學習 App 中最引以為傲的紀錄。
-                    <br>
-                    然而，今天她重感冒，身體非常不舒服，只想好好休息。
-                    <br>
-                    <span class="text-yellow-300">如果今天「斷簽」，她將失去 360 天的紀錄，還會被踢出排行榜...</span>
-                </p>
-                <!-- 調整 text-2xl 為 text-xl --><p class="text-xl font-semibold mb-5">她應該...</p>
-                <div class="flex space-x-4 flex-wrap justify-center">
-                    <!-- 調整 text-2xl 為 text-xl，px-10 py-5 為 px-8 py-4 --><button id="btn-check-in" class="px-8 py-4 bg-green-600/80 hover:bg-green-500 text-white text-xl font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 m-2">
+                
+                <!-- 按鈕容器 (w-full 繼承 max-w-xl 寬度) -->
+                <!-- justify-center 讓按鈕在 w-full 的容器內置中，從而與上方文字框完美對齊。 -->
+                <div class="flex space-x-4 flex-wrap justify-center w-full"> 
+                    <!-- 按鈕大小/文字維持不變 -->
+                    <button id="btn-check-in" class="px-8 py-4 bg-green-600/90 hover:bg-green-500 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 m-1">
                         爬起床簽到
                     </button>
-                    <!-- 調整 text-2xl 為 text-xl，px-10 py-5 為 px-8 py-4 --><button id="btn-no-check-in" class="px-8 py-4 bg-red-700/80 hover:bg-red-600 text-white text-xl font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 m-2">
+                    <button id="btn-no-check-in" class="px-8 py-4 bg-red-700/90 hover:bg-red-600 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 m-1">
                         好好休息 (不簽到)
                     </button>
                 </div>
