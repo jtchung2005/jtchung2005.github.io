@@ -1,265 +1,267 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>損失迴避：小庭的簽到挑戰</title>
-    <!-- 載入 Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* 使用 Inter 字體 */
-        body {
-            font-family: 'Inter', 'Noto Sans TC', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #1a202c; /* 深灰色背景 */
-        }
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    /* 確保字體在 WordPress 環境下也一致 */
+    .loss-aversion-app * {
+        font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    }
+    
+    /* 替代原有的固定尺寸容器，更適合嵌入環境 */
+    .loss-aversion-app {
+        /* 使用相對定位作為場景絕對定位的參考點 */
+        position: relative; 
+        /* --- 關鍵修正：固定尺寸與響應式縮放 --- */
+        width: 1152px;
+        height: 648px;
+        max-width: 100%; /* 確保它不會超出父容器的寬度 */
+        aspect-ratio: 16 / 9; /* 保持 1152x648 (16:9) 的比例 */
+        margin-left: auto; /* 讓整個應用程式在寬螢幕下置中 */
+        margin-right: auto;
+        /* ------------------------------------- */
+
+        overflow: hidden;
+        border-radius: 1rem; /* rounded-2xl */
+        background-color: #1a202c; /* 深灰色背景 */
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    /* 確保所有場景佔滿容器，並透過 CSS 屬性設定排版 */
+    .scene {
+        transition: opacity 0.5s ease-in-out, visibility 0.5s;
+        position: absolute; 
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        /* 預設的 flex 屬性，之後會被覆蓋 */
+        display: flex; 
+        flex-direction: column;
+        justify-content: flex-end; /* 預設靠底 */
+        align-items: flex-end; /* 預設靠右 */
+        padding: 3rem; /* p-12 */
+    }
+
+    /* 預設隱藏場景 */
+    .scene:not(.active) {
+        opacity: 0;
+        visibility: hidden;
+        display: none !important; /* 強制隱藏非活動場景 */
+    }
+    
+    /* 顯示當前場景 */
+    .scene.active {
+        opacity: 1;
+        visibility: visible;
+        display: flex !important; /* 強制顯示活動場景 */
+    }
+
+    /* 背景圖樣式 (使用 CSS 替代 Tailwind 類別，確保樣式優先級) */
+    #scene-1 {
+        background-image: url('https://castnet.dcat.nycu.edu.tw/wp-content/uploads/2025/11/喀報sleep.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    
+    #scene-2-positive {
+        background-image: url('https://castnet.dcat.nycu.edu.tw/wp-content/uploads/2025/11/喀報yes.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    #scene-2-trap {
+        background-image: url('https://castnet.dcat.nycu.edu.tw/wp-content/uploads/2025/11/喀報渦.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    #scene-3 {
+        background-image: url('https://castnet.dcat.nycu.edu.tw/wp-content/uploads/2025/11/喀報no.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+</style>
+
+<!-- 替換原有的 panel-container，使用更適合嵌入的容器 -->
+<div class="loss-aversion-app text-white">
+
+    <!-- 場景一：初始情境與決策 -->
+    <div id="scene-1" class="scene active">
         
-        /* 定義面板的精確尺寸，並確保響應性 */
-        .panel-container {
-            width: 1152px;
-            height: 648px;
-            /* 確保在較小螢幕上能縮放 */
-            max-width: 90vw; /* 限制最大寬度為視窗的 90% */
-            aspect-ratio: 16 / 9; /* 保持 1152x648 (16:9) 的比例 */
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            margin: 20px; /* 添加邊距以避免貼邊 */
-        }
-
-        /* 用於切換場景的輔助類 */
-        .scene {
-            transition: opacity 0.5s ease-in-out, visibility 0.5s;
-        }
-
-        /* 預設隱藏場景 */
-        .scene:not(.active) {
-            opacity: 0;
-            visibility: hidden;
-            position: absolute; /* 確保元素不佔用空間，並疊加 */
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            display: none; /* 確保元素在非 active 狀態下不被點擊 */
-        }
-        
-        /* 顯示當前場景 */
-        .scene.active {
-            opacity: 1;
-            visibility: visible;
-            display: flex; /* 使用 flex 進行內部排版 */
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Scene 1 的背景圖樣式 */
-        #scene-1.active {
-            background-image: url('喀報sleep.png');
-            background-size: cover; /* 讓圖片覆蓋整個容器 */
-            background-position: center; /* 圖片置中 */
-            background-repeat: no-repeat; /* 避免重複 */
-        }
-        
-        /* Scene 2 (Positive) 的背景圖樣式 */
-        #scene-2-positive.active {
-            background-image: url('喀報yes.png');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }
-
-        /* Scene 2 (Trap) 的背景圖樣式 */
-        #scene-2-trap.active {
-            background-image: url('喀報渦.png');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }
-
-        /* Scene 3 的背景圖樣式 */
-        #scene-3.active {
-            background-image: url('喀報no.png');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }
-    </style>
-</head>
-<body class="bg-gray-900">
-
-    <!-- 面板容器，固定 1152x648px 比例 --><div class="panel-container bg-gray-800 text-white rounded-2xl p-12 overflow-hidden relative">
-
-        <!-- 場景一：初始情境與決策 -->
-        <!-- items-end: 讓內容靠右對齊 (整體靠右) -->
-        <!-- justify-end: 讓內容靠底部對齊 (整體靠下) -->
-        <div id="scene-1" class="scene active w-full h-full flex flex-col justify-end items-end p-12">
+        <!-- 新增一個包裹層，限制整個內容區塊的寬度，並讓其靠右 (由父層 items-end 控制) -->
+        <div class="w-full max-w-xl">
             
-            <!-- 新增一個包裹層，限制整個內容區塊的寬度，並讓其靠右 (由父層 items-end 控制) -->
-            <div class="w-full max-w-xl">
-                
-                <!-- 內容區塊 (w-full 繼承 max-w-xl 寬度) -->
-                <div class="bg-gray-900/80 p-5 rounded-xl shadow-2xl w-full flex flex-col items-center text-white text-center mb-4">
-                    <div class="mb-4">
-                        <!-- 數字 360 加上發光效果 -->
-                        <span class="text-5xl font-bold text-white" style="text-shadow: 0 0 15px rgba(255, 255, 255, 0.9), 0 0 25px rgba(255, 255, 255, 0.7);">360</span>
-                        <!-- 單位 text-2xl，文字改回淺灰色 -->
-                        <span class="text-2xl font-semibold ml-2 text-gray-200">天連續簽到！</span>
-                    </div>
-                    <!-- 主文 text-base，文字改回淺灰色 -->
-                    <p class="text-base text-gray-200 mb-6 leading-relaxed">
-                        這是小庭在學習 App 中最引以為傲的紀錄。
-                        <br>
-                        然而，今天她重感冒，身體非常不舒服，只想好好休息。
-                        <br>
-                        <!-- 重點文字改為黃色，確保在深色背景上可讀 -->
-                        <span class="text-yellow-400 font-medium">如果今天「斷簽」，她將失去 360 天的紀錄，還會被踢出排行榜...</span>
-                    </p>
-                    <!-- 提示文字 text-lg，文字改回白色 -->
-                    <p class="text-lg font-semibold text-white">她應該...</p>
+            <!-- 內容區塊 (w-full 繼承 max-w-xl 寬度) -->
+            <div class="bg-gray-900/80 p-5 rounded-xl shadow-2xl w-full flex flex-col items-center text-white text-center mb-4">
+                <div class="mb-4">
+                    <!-- 數字 360 加上發光效果 -->
+                    <span class="text-5xl font-bold text-white" style="text-shadow: 0 0 15px rgba(255, 255, 255, 0.9), 0 0 25px rgba(255, 255, 255, 0.7);">360</span>
+                    <!-- 單位 text-2xl，文字改回淺灰色 -->
+                    <span class="text-2xl font-semibold ml-2 text-gray-200">天連續簽到！</span>
                 </div>
-                
-                <!-- 按鈕容器 (w-full 繼承 max-w-xl 寬度) -->
-                <!-- justify-center 讓按鈕在 w-full 的容器內置中，從而與上方文字框完美對齊。 -->
-                <div class="flex space-x-4 flex-wrap justify-center w-full"> 
-                    <!-- 按鈕大小/文字維持不變 -->
-                    <button id="btn-check-in" class="px-8 py-4 bg-green-600/90 hover:bg-green-500 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 m-1">
-                        爬起床簽到
-                    </button>
-                    <button id="btn-no-check-in" class="px-8 py-4 bg-red-700/90 hover:bg-red-600 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 m-1">
-                        好好休息 (不簽到)
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 場景二：結果 (簽到) - 步驟一 --><div id="scene-2-positive" class="scene w-full h-full flex-col justify-center items-center text-center p-12">
-            <!-- 移除包裹器 (bg-gray-900/90)，內容直接顯示 --><h2 class="text-6xl font-extrabold text-green-400 mb-6" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">保持連續簽到 361 天!!</h2>
-            <!-- 將 text-gray-200 改為 text-black，並新增 text-shadow: 1px 1px 2px rgba(255,255,255,0.7) --><p class="text-3xl text-black mb-6" style="text-shadow: 1px 1px 2px rgba(255,255,255,0.7);">你成功地維持了你的紀錄...</p>
-            
-            <button id="btn-next-trap" class="mt-12 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xl font-semibold rounded-lg shadow-md transition-all duration-300">
-                下一步 &rarr;
-            </button>
-        </div>
-
-        <!-- 場景二：結果 (簽到) - 步驟二 (陷阱) --><div id="scene-2-trap" class="scene w-full h-full flex-col justify-center items-center text-center p-12">
-            <!-- 調整 bg-red-900/90 為 bg-red-900/70，移除 backdrop-blur-sm --><div class="bg-red-900/70 border-2 border-red-600 p-8 rounded-lg max-w-2xl">
-                <!-- 調整 text-3xl 為 text-2xl --><p class="text-2xl font-bold text-red-300">...但是，你落入了「損失迴避」的陷阱！</p>
-                <!-- 調整 text-lg 為 text-base --><p class="text-base text-gray-200 mt-4 leading-relaxed">
-                    為了避免失去 360 天的累積紀錄，即使在重感冒時也強迫自己完成任務。
+                <!-- 主文 text-base，文字改回淺灰色 -->
+                <p class="text-base text-gray-200 mb-6 leading-relaxed">
+                    這是小庭在學習 App 中最引以為傲的紀錄。
                     <br>
-                    這種「害怕失去」的強烈焦慮感，正是 App 利用的心理學原理。
-                </p>
-            </div>
-            <button class="reset-btn mt-12 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xl font-semibold rounded-lg shadow-md transition-all duration-300">
-                再看一次情境
-            </button>
-        </div>
-
-        <!-- 場景三：結果 (不簽到) --><div id="scene-3" class="scene w-full h-full flex-col justify-center items-center text-center p-12">
-            <h2 class="text-6xl font-extrabold text-red-600 mb-6" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">累積簽到 0 天</h2>
-            <p class="text-4xl font-semibold text-white mb-8" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">你被踢出排行榜了...</p>
-            
-            <div class="bg-gray-900/90 p-6 rounded-lg max-w-2xl backdrop-blur-sm">
-                <p class="text-2xl font-bold text-yellow-300">這就是「損失迴避」的威力</p>
-                <p class="text-lg text-gray-200 mt-4 leading-relaxed">
-                    失去 360 天紀錄所帶來的「痛苦」，遠大於每天簽到獲得的「快樂」。
+                    然而，今天她重感冒，身體非常不舒服，只想好好休息。
                     <br>
-                    這種對損失的強烈恐懼，會嚴重影響我們的決策。
+                    <!-- 重點文字改為黃色，確保在深色背景上可讀 -->
+                    <span class="text-yellow-400 font-medium">如果今天「斷簽」，她將失去 360 天的紀錄，還會被踢出排行榜...</span>
                 </p>
+                <!-- 提示文字 text-lg，文字改回白色 -->
+                <p class="text-lg font-semibold text-white">她應該...</p>
             </div>
-            <button class="reset-btn mt-12 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xl font-semibold rounded-lg shadow-md transition-all duration-300">
-                再看一次情境
-            </button>
+            
+            <!-- 按鈕容器 (w-full 繼承 max-w-xl 寬度) -->
+            <!-- justify-center 讓按鈕在 w-full 的容器內置中，從而與上方文字框完美對齊。 -->
+            <div class="flex space-x-4 flex-wrap justify-center w-full"> 
+                <!-- 按鈕大小/文字維持不變 -->
+                <button id="btn-check-in" class="px-8 py-4 bg-green-600/90 hover:bg-green-500 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 m-1">
+                    爬起床簽到
+                </button>
+                <button id="btn-no-check-in" class="px-8 py-4 bg-red-700/90 hover:bg-red-600 text-white text-lg font-bold rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 m-1">
+                    好好休息 (不簽到)
+                </button>
+            </div>
         </div>
-
     </div>
 
-    <script>
-        // 獲取所有需要的 DOM 元素
-        const scene1 = document.getElementById('scene-1');
-        const scene2Positive = document.getElementById('scene-2-positive');
-        const scene2Trap = document.getElementById('scene-2-trap');
-        const scene3 = document.getElementById('scene-3');
+    <!-- 場景二：結果 (簽到) - 步驟一 -->
+    <!-- 使用 inline style 覆蓋 scene 預設的靠右下對齊，改為置中 -->
+    <div id="scene-2-positive" class="scene" style="justify-content: center; align-items: center; text-align: center; padding: 3rem;">
+        <h2 class="text-6xl font-extrabold text-green-400 mb-6" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">保持連續簽到 361 天!!</h2>
+        <p class="text-3xl text-black mb-6" style="text-shadow: 1px 1px 2px rgba(255,255,255,0.7);">你成功地維持了你的紀錄...</p>
         
-        const btnCheckIn = document.getElementById('btn-check-in');
-        const btnNoCheckIn = document.getElementById('btn-no-check-in');
-        const btnNextTrap = document.getElementById('btn-next-trap');
+        <button id="btn-next-trap" class="mt-12 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xl font-semibold rounded-lg shadow-md transition-all duration-300">
+            下一步 &rarr;
+        </button>
+    </div>
+
+    <!-- 場景二：結果 (簽到) - 步驟二 (陷阱) -->
+    <div id="scene-2-trap" class="scene" style="justify-content: center; align-items: center; text-align: center; padding: 3rem;">
+        <div class="bg-red-900/70 border-2 border-red-600 p-8 rounded-lg max-w-2xl">
+            <p class="text-2xl font-bold text-red-300">...但是，你落入了「損失迴避」的陷阱！</p>
+            <p class="text-base text-gray-200 mt-4 leading-relaxed">
+                為了避免失去 360 天的累積紀錄，即使在重感冒時也強迫自己完成任務。
+                <br>
+                這種「害怕失去」的強烈焦慮感，正是 App 利用的心理學原理。
+            </p>
+        </div>
+        <button class="reset-btn mt-12 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xl font-semibold rounded-lg shadow-md transition-all duration-300">
+            再看一次情境
+        </button>
+    </div>
+
+    <!-- 場景三：結果 (不簽到) -->
+    <div id="scene-3" class="scene" style="justify-content: center; align-items: center; text-align: center; padding: 3rem;">
+        <h2 class="text-6xl font-extrabold text-red-600 mb-6" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">累積簽到 0 天</h2>
+        <p class="text-4xl font-semibold text-white mb-8" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.8);">你被踢出排行榜了...</p>
         
-        // 獲取所有重設按鈕
-        const resetButtons = document.querySelectorAll('.reset-btn');
+        <div class="bg-gray-900/90 p-6 rounded-lg max-w-2xl backdrop-blur-sm">
+            <p class="text-2xl font-bold text-yellow-300">這就是「損失迴避」的威力</p>
+            <p class="text-lg text-gray-200 mt-4 leading-relaxed">
+                失去 360 天紀錄所帶來的「痛苦」，遠大於每天簽到獲得的「快樂」。
+                <br>
+                這種對損失的強烈恐懼，會嚴重影響我們的決策。
+            </p>
+        </div>
+        <button class="reset-btn mt-12 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xl font-semibold rounded-lg shadow-md transition-all duration-300">
+            再看一次情境
+        </button>
+    </div>
+</div>
 
-        // 儲存所有場景
-        const allScenes = [scene1, scene2Positive, scene2Trap, scene3];
+<script>
+    // 獲取所有需要的 DOM 元素
+    // 由於我們移除了 document.body，我們需要從新的根元素開始獲取
+    const appContainer = document.querySelector('.loss-aversion-app');
 
-        /**
-         * 顯示指定的場景，並隱藏其他所有場景
-         * @param {HTMLElement} sceneToShow - 要顯示的場景元素
-         */
-        function showScene(sceneToShow) {
-            allScenes.forEach(scene => {
-                if (scene === sceneToShow) {
-                    // 為了確保 CSS transition 能夠正確觸發，需要先設置 display:flex，再添加 'active' class
-                    scene.style.display = 'flex';
-                    // 確保瀏覽器有時間渲染 display 改變
-                    requestAnimationFrame(() => {
-                        scene.classList.add('active');
-                    });
-                } else {
-                    if (scene.classList.contains('active')) {
-                        scene.classList.remove('active');
-                        // 監聽 transition 結束事件，然後才設置 display:none
-                        scene.addEventListener('transitionend', function onTransitionEnd() {
-                            // 移除監聽器，避免重複觸發
-                            scene.removeEventListener('transitionend', onTransitionEnd);
-                            // 只有在場景不再是 active 時才隱藏它
-                            if (!scene.classList.contains('active')) {
-                                scene.style.display = 'none';
-                            }
-                        }, { once: true });
-                    } else if (scene.style.display !== 'none') {
-                         // 如果場景已經被隱藏但沒有 active class，直接設置 display:none
-                        scene.style.display = 'none';
-                    }
+    const scene1 = appContainer.querySelector('#scene-1');
+    const scene2Positive = appContainer.querySelector('#scene-2-positive');
+    const scene2Trap = appContainer.querySelector('#scene-2-trap');
+    const scene3 = appContainer.querySelector('#scene-3');
+    
+    const btnCheckIn = appContainer.querySelector('#btn-check-in');
+    const btnNoCheckIn = appContainer.querySelector('#btn-no-check-in');
+    const btnNextTrap = appContainer.querySelector('#btn-next-trap');
+    
+    // 獲取所有重設按鈕
+    const resetButtons = appContainer.querySelectorAll('.reset-btn');
+
+    // 儲存所有場景
+    const allScenes = [scene1, scene2Positive, scene2Trap, scene3];
+
+    /**
+     * 顯示指定的場景，並隱藏其他所有場景
+     * @param {HTMLElement} sceneToShow - 要顯示的場景元素
+     */
+    function showScene(sceneToShow) {
+        allScenes.forEach(scene => {
+            if (scene === sceneToShow) {
+                // 顯示場景
+                scene.style.display = 'flex';
+                requestAnimationFrame(() => {
+                    scene.classList.add('active');
+                });
+            } else {
+                if (scene.classList.contains('active')) {
+                    scene.classList.remove('active');
+                    // 監聽 transition 結束事件，然後才設置 display:none
+                    scene.addEventListener('transitionend', function onTransitionEnd() {
+                        scene.removeEventListener('transitionend', onTransitionEnd);
+                        if (!scene.classList.contains('active')) {
+                            scene.style.display = 'none';
+                        }
+                    }, { once: true });
+                } else if (scene.style.display !== 'none') {
+                    // 如果場景已經被隱藏但沒有 active class，直接設置 display:none
+                    scene.style.display = 'none';
                 }
-            });
-        }
+            }
+        });
+    }
 
-        // 綁定「簽到」按鈕事件
+    // 綁定「簽到」按鈕事件
+    if (btnCheckIn) {
         btnCheckIn.addEventListener('click', () => {
             showScene(scene2Positive);
         });
+    }
 
-        // 綁定「下一步（陷阱）」按鈕事件
+    // 綁定「下一步（陷阱）」按鈕事件
+    if (btnNextTrap) {
         btnNextTrap.addEventListener('click', () => {
             showScene(scene2Trap);
         });
+    }
 
-        // 綁定「不簽到」按鈕事件
+    // 綁定「不簽到」按鈕事件
+    if (btnNoCheckIn) {
         btnNoCheckIn.addEventListener('click', () => {
             showScene(scene3);
         });
+    }
 
-        // 綁定所有「重設」按鈕事件
-        resetButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                showScene(scene1);
-            });
+    // 綁定所有「重設」按鈕事件
+    resetButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            showScene(scene1);
         });
+    });
 
-        // 初始載入時，確保只顯示場景一
-        document.addEventListener('DOMContentLoaded', () => {
-            // 由於 CSS 預設已經設定 scene-1 為 active，這裡確保其他場景被正確初始化隱藏
-             allScenes.forEach(scene => {
-                if (scene !== scene1) {
-                    scene.style.display = 'none';
-                }
-            });
+    // 初始載入時，確保只顯示場景一
+    document.addEventListener('DOMContentLoaded', () => {
+         allScenes.forEach(scene => {
+            if (scene !== scene1) {
+                // 確保初始狀態下非活動場景被隱藏
+                scene.style.display = 'none';
+            } else {
+                // 確保場景一被顯示
+                scene.style.display = 'flex';
+                scene.classList.add('active');
+            }
         });
-    </script>
-
-</body>
-</html>
+    });
+</script>
