@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>kaki-machine 遙控器</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#0b0405;color:#fff1e2;font-family:"Noto Sans TC",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;padding:24px 18px 40px;gap:16px;-webkit-tap-highlight-color:transparent}
+  h1{font-size:22px;font-weight:900;letter-spacing:.15em;color:#ffb03a}
+  .status{width:100%;max-width:420px;border:1px solid rgba(255,106,0,.5);border-radius:14px;padding:14px 16px;
+    background:rgba(40,8,8,.6);display:flex;justify-content:space-between;align-items:center;font-size:15px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#666;margin-right:8px;vertical-align:middle}
+  .dot.on{background:#3ce08c;box-shadow:0 0 8px #3ce08c}
+  .state{font-weight:900;color:#ffb03a}
+  .grid{width:100%;max-width:420px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  button{font-family:inherit;font-size:18px;font-weight:900;letter-spacing:.1em;padding:20px 10px;border-radius:16px;
+    border:2px solid #ff6a00;background:rgba(30,4,4,.8);color:#ffb03a;cursor:pointer}
+  button:active{transform:scale(.97);filter:brightness(1.3)}
+  button.big{grid-column:1/3;font-size:24px;padding:30px 10px;background:linear-gradient(90deg,#ff1e3c,#ff6a00);color:#fff;border-color:transparent}
+  button.warn{border-color:#ff1e3c;color:#ff8a9a}
+  button:disabled{opacity:.35}
+  .note{max-width:420px;font-size:13px;line-height:1.7;color:rgba(255,220,190,.6)}
+  .room{font-family:monospace;color:#ffb03a}
+</style>
+</head>
+<body>
+  <h1>KAKI 遙控器</h1>
+
+  <div class="status">
+    <span><span class="dot" id="dot"></span><span id="conn">連線中…</span></span>
+    <span>螢幕：<span class="state" id="state">未知</span></span>
+  </div>
+
+  <div class="grid">
+    <button class="big" data-cmd="insert">✉ 投一封信</button>
+    <button data-cmd="watch">觀看教學</button>
+    <button data-cmd="skip">略過教學</button>
+    <button data-cmd="back">教學結束・返回</button>
+    <button data-cmd="mute">音樂開／關</button>
+    <button class="warn" data-cmd="reset" style="grid-column:1/3">↺ 重來（回到 49 封）</button>
+  </div>
+
+  <p class="note">
+    房間代碼：<span class="room" id="room"></span><br>
+    使用前，請先在機器螢幕上點一下「開始」（瀏覽器規定聲音要在螢幕本機點過才能播放），之後就能用這裡遙控。
+  </p>
+
+<script>
+const q = new URLSearchParams(location.search);
+const ROOM = q.get('room') || 'kaki-machine-666fwjg8';
+const BASE = 'https://ntfy.sh/' + ROOM;
+document.getElementById('room').textContent = ROOM;
+
+const NAMES = {
+  idle:'等待投信', booting:'啟動中', choice:'詢問是否看教學', tutorial:'播放教學中', go:'請戴上傳送器'
+};
+const $state = document.getElementById('state');
+const $dot = document.getElementById('dot'), $conn = document.getElementById('conn');
+let lastSeen = 0;
+
+function send(cmd){
+  fetch(BASE, { method:'POST', body: cmd }).catch(() => { $conn.textContent = '傳送失敗'; });
+}
+document.querySelectorAll('button[data-cmd]').forEach(b => b.addEventListener('click', () => {
+  const cmd = b.dataset.cmd;
+  if (cmd === 'reset' && !confirmReset()) return;
+  send(cmd);
+  if (navigator.vibrate) navigator.vibrate(30);
+}));
+let resetArmed = 0;
+function confirmReset(){                 // 重來要連按兩下，避免誤觸
+  const now = Date.now();
+  const btn = document.querySelector('[data-cmd=reset]');
+  if (now - resetArmed < 2500){ resetArmed = 0; btn.textContent = '↺ 重來（回到 49 封）'; return true; }
+  resetArmed = now; btn.textContent = '再按一次確認重來';
+  setTimeout(() => { if (Date.now() - resetArmed >= 2400) btn.textContent = '↺ 重來（回到 49 封）'; }, 2500);
+  return false;
+}
+
+// 接收螢幕回報的狀態
+(function listen(){
+  const es = new EventSource(BASE + '-status/sse');
+  es.onopen = () => { $conn.textContent = '已連線'; send('ping'); };
+  es.onmessage = ev => {
+    try{
+      const d = JSON.parse(ev.data);
+      if (d.event !== 'message') return;
+      const s = JSON.parse(d.message);
+      lastSeen = Date.now();
+      $state.textContent = !s.armed ? '尚未在螢幕點開始' : (NAMES[s.state] || s.state) + (s.state === 'idle' ? `（${s.count} 封）` : '');
+    }catch(e){}
+  };
+  es.onerror = () => { $conn.textContent = '重新連線中…'; es.close(); setTimeout(listen, 3000); };
+})();
+setInterval(() => {
+  const ok = Date.now() - lastSeen < 25000;
+  $dot.classList.toggle('on', ok);
+  if (!ok && $conn.textContent === '已連線') send('ping');
+}, 8000);
+</script>
+</body>
+</html>

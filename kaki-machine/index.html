@@ -88,6 +88,25 @@
   .floaters.suck .bow{animation:suck .9s cubic-bezier(.6,0,.95,.35) forwards !important;animation-delay:var(--sd,0s) !important}
   body.sucked .bow.side{animation:suck .8s cubic-bezier(.6,0,.95,.35) forwards}
 
+  #sceneReady .ready-bow{width:min(18vw,27vh);height:min(15.4vw,23vh);margin-bottom:2vh}
+  /* ---------- 教學選項 ---------- */
+  .choice{margin-top:5vh;display:flex;flex-direction:column;align-items:center;gap:3vh;transition:opacity .6s, transform .6s}
+  .hidden-choice{opacity:0;transform:translateY(2vh);pointer-events:none}
+  .choice-q{font-size:min(3.4vw,5.4vh);font-weight:700;color:var(--cream);letter-spacing:.12em}
+  .choice-btns{display:flex;gap:3vw}
+  .btn{font-family:inherit;font-size:min(3vw,4.8vh);font-weight:900;letter-spacing:.15em;cursor:pointer;
+    padding:1.6vh 3.4vw;border-radius:999px;border:2px solid var(--orange);background:rgba(20,0,0,.55);color:var(--amber);
+    box-shadow:0 0 16px rgba(255,90,0,.45)}
+  .btn.primary{background:linear-gradient(90deg,var(--red),var(--orange));color:var(--cream);border-color:transparent}
+  .btn:active{transform:scale(.96)}
+  .tut-title{font-size:min(4.5vw,7vh);font-weight:900;letter-spacing:.15em;margin-bottom:3vh}
+  .tut-frame{width:min(80vw,128vh);aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000;
+    border:2px solid var(--orange);box-shadow:0 0 30px rgba(255,80,0,.5)}
+  .tut-frame video,.tut-frame iframe{width:100%;height:100%;border:0;display:block}
+  .tut-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;
+    color:rgba(255,200,160,.7);font-size:min(2.6vw,4vh);line-height:1.8}
+  .tut-back{margin-top:3vh;font-size:min(2.4vw,3.8vh)}
+
   /* ---------- 計數 ---------- */
   .sender{font-size:min(8vw,13vh);font-weight:900;letter-spacing:.06em}
   .count-wrap{position:relative;margin:2vh 0 4vh}
@@ -214,6 +233,27 @@
     <div class="bow ready-bow"></div>
     <div class="ready-title glow" id="readyTitle">啟動完成</div>
     <div class="ready-sub" id="readySub">請戴上傳送器</div>
+    <div class="choice hidden-choice" id="choice">
+      <div class="choice-q">是否觀看傳送器使用教學？</div>
+      <div class="choice-btns">
+        <button class="btn primary" id="btnWatch">觀看教學</button>
+        <button class="btn" id="btnSkip">略過</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 傳送器使用教學 -->
+  <section class="scene hidden" id="sceneTutorial">
+    <div class="tut-title glow">傳送器使用教學</div>
+    <div class="tut-frame" id="tutFrame"></div>
+    <button class="btn tut-back" id="btnBack">看完了，返回</button>
+  </section>
+
+  <!-- 5. 前往 -->
+  <section class="scene hidden" id="sceneGo">
+    <div class="bow ready-bow"></div>
+    <div class="ready-title glow">請戴上傳送器</div>
+    <div class="ready-sub">出發去了解她的故事吧</div>
   </section>
 </div>
 
@@ -226,7 +266,6 @@
 <div class="grain"></div>
 <div class="scan"></div>
 <div class="gate" id="gate"><b>KAKI</b><small>點一下畫面開始</small></div>
-<div class="help">點畫面 / 空白鍵：投信　F：全螢幕　R：重來　M：音樂開關</div>
 
 <script>
 /* ===== 可調整設定（網址參數可覆蓋，例如 ?name=小明&from=49&goal=50） ===== */
@@ -241,15 +280,17 @@ const CFG = {
   startFill: parseFloat(q.get('fill') ?? '80'),   // 投信前進度條顯示的百分比
   voice: q.get('voice') !== '0',                 // 旁白配音，?voice=0 關閉
   rate: parseFloat(q.get('rate') ?? '0.95'),
-  robot: parseFloat(q.get('robot') ?? '1'),        // 人聲機械感強度 0~1，?robot=0 關閉      // 旁白語速
+  robot: parseFloat(q.get('robot') ?? '0'),        // 人聲機械感 0~1（預設關閉）
   autoReset: parseInt(q.get('reset') ?? '0', 10), // 完成後幾秒自動重來，0 = 不自動
+  tutorial: q.get('video') || 'tutorial.mp4',     // 傳送器使用教學影片：同資料夾的 mp4，或 YouTube 連結
+  room: q.get('room') || 'kaki-machine-666fwjg8',   // 遠端遙控的房間代碼（遙控器要用同一個）
   sound: q.get('sound') !== '0',
   music: q.get('music') !== '0',                  // 背景音樂，?music=0 關閉
   volume: parseFloat(q.get('vol') ?? '0.8')       // 背景音樂音量 0~1
 };
 
 const $ = id => document.getElementById(id);
-const scenes = { count: $('sceneCount'), boot: $('sceneBoot'), ready: $('sceneReady') };
+const scenes = { count: $('sceneCount'), boot: $('sceneBoot'), ready: $('sceneReady'), tutorial: $('sceneTutorial'), go: $('sceneGo') };
 let current = CFG.from, busy = false, timers = [];
 
 $('sender').textContent = '分析對象：' + CFG.name;
@@ -302,7 +343,7 @@ const CHORDS = [
   [43, 50, 55, 59, 64]
 ];
 const ARP = [0, 2, 1, 3, 4, 3, 2, 1, 0, 2, 3, 4, 3, 1, 2, 4];   // 音樂盒琶音順序
-const SPARKLE = [84, 86, 88, 91, 93, 96, 98, 100];              // 高音大調五聲
+const SPARKLE = [72, 74, 76, 79, 81, 84, 86, 88];              // 高音大調五聲
 
 function getAC(){ ac = ac || new (window.AudioContext || window.webkitAudioContext)(); return ac; }
 
@@ -323,7 +364,7 @@ function bell(ctx, out, freq, t, vol, len, pan){
   let dest = g;
   if (ctx.createStereoPanner){ const p = ctx.createStereoPanner(); p.pan.value = pan || 0; g.connect(p); p.connect(out); }
   else g.connect(out);
-  [[1, 1], [2.0, .25], [3.01, .12], [5.4, .04]].forEach(([mul, amp]) => {
+  [[1, 1], [2.0, .12], [3.01, .03]].forEach(([mul, amp]) => {
     const o = ctx.createOscillator(), og = ctx.createGain();
     o.type = 'sine'; o.frequency.value = freq * mul; og.gain.value = amp;
     o.connect(og).connect(dest); o.start(t); o.stop(t + len + .05);
@@ -353,7 +394,8 @@ function startMusic(){
   M.master = ctx.createGain();
   M.master.gain.setValueAtTime(0, t0);
   M.master.gain.linearRampToValueAtTime(0.5 * CFG.volume, t0 + 2.5);
-  M.master.connect(ctx.destination);
+  M.tone = ctx.createBiquadFilter(); M.tone.type = 'lowpass'; M.tone.frequency.value = 2400; M.tone.Q.value = .5;
+  M.master.connect(M.tone).connect(ctx.destination);
 
   const reverb = makeReverb(ctx, 2.8), wet = ctx.createGain();
   wet.gain.value = .45; reverb.connect(wet).connect(M.master);
@@ -375,12 +417,12 @@ function startMusic(){
 
     // 音樂盒琶音（偶爾休息、偶爾跳高八度，比較活潑）
     if (Math.random() > .12){
-      const n = chord[ARP[s] % chord.length] + 24 + (Math.random() < .15 ? 12 : 0);
+      const n = chord[ARP[s] % chord.length] + 12 + (Math.random() < .12 ? 12 : 0);
       bell(ctx, bus, N(n), now, s % 4 === 0 ? .075 : .05, 1.1, Math.sin(step * .7) * .6);
     }
     // 閃亮上行音
     if (step % M.sparkleEvery === M.sparkleEvery - 4){
-      SPARKLE.forEach((n, i) => bell(ctx, bus, N(n), now + i * .045, .025, .6, (i / 4) - 1));
+      SPARKLE.forEach((n, i) => bell(ctx, bus, N(n), now + i * .05, .018, .7, (i / 4) - 1));
     }
     step++;
     M.timer = setTimeout(tick, M.stepMs);
@@ -416,6 +458,7 @@ function insertLetter(){
   later(() => {
     current++;
     setCount(current, true);
+    report();
     retrigger($('flash'), 'go');
     retrigger(document.body, 'shake');
     tone(440, 0, .3, 'triangle'); tone(660, .1, .4, 'triangle');
@@ -541,6 +584,7 @@ function hideSub(){ duck(false); }
 /* ===== 已滿足分析條件 → 啟動 → 完成 ===== */
 async function conditionMet(){
   myRun = ++runId;
+  state = 'booting'; report();
   retrigger($('met'), 'on');
   tone(784, 0, .3); tone(1046, .15, .5);
   await say(LINES.met[0]);
@@ -586,8 +630,46 @@ async function startBoot(){
   await new Promise(r => timers.push(setTimeout(r, 600)));
   await say(LINES.ready[0]);
   hideSub();
-  if (CFG.autoReset > 0 && runId === myRun) later(reset, CFG.autoReset * 1000);
+  if (runId !== myRun) return;
+  $('choice').classList.remove('hidden-choice');   // 問要不要看教學
+  state = 'choice'; report();
+  if (CFG.autoReset > 0) later(reset, CFG.autoReset * 1000);
 }
+
+/* ===== 傳送器使用教學 ===== */
+function youtubeId(u){
+  const m = u.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/); return m ? m[1] : null;
+}
+function openTutorial(){
+  if (state !== 'choice') return;
+  state = 'tutorial'; report();
+  const box = $('tutFrame'); box.innerHTML = '';
+  const yt = youtubeId(CFG.tutorial);
+  if (yt){
+    box.innerHTML = `<iframe src="https://www.youtube.com/embed/${yt}?autoplay=1&rel=0&playsinline=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  } else {
+    const v = document.createElement('video');
+    v.src = CFG.tutorial; v.controls = true; v.autoplay = true; v.playsInline = true;
+    v.onended = () => goAfterTutorial();
+    v.onerror = () => { box.innerHTML = '<div class="tut-empty">尚未放入教學影片<br>（把影片命名為 tutorial.mp4 放在同一個資料夾）</div>'; };
+    box.appendChild(v);
+  }
+  if (M.on && !M.muted) duck(true);
+  show('tutorial');
+}
+function goAfterTutorial(){
+  if (state !== 'tutorial' && state !== 'choice') return;
+  $('tutFrame').innerHTML = '';
+  state = 'go'; report();
+  duck(false);
+  show('go');
+}
+function skipTutorial(){ if (state === 'choice') goAfterTutorial(); }
+let state = 'idle';
+['btnWatch','btnSkip','btnBack'].forEach(id => $(id).addEventListener('pointerdown', e => e.stopPropagation()));
+$('btnWatch').addEventListener('click', openTutorial);
+$('btnSkip').addEventListener('click', skipTutorial);
+$('btnBack').addEventListener('click', goAfterTutorial);
 
 function reset(){
   runId++;
@@ -598,6 +680,9 @@ function reset(){
   document.body.classList.remove('boot', 'shake', 'done', 'sucked');
   $('floaters').classList.remove('suck');
   $('met').classList.remove('on');
+  $('choice').classList.add('hidden-choice');
+  $('tutFrame').innerHTML = '';
+  state = 'idle'; report();
   $('fill').style.transition = 'none';
   setCount(current);
   void $('fill').offsetWidth; $('fill').style.transition = '';
@@ -614,6 +699,7 @@ function arm(){
   $('gate').classList.add('off');
   startMusic();
   loadNarration();
+  report();
 }
 document.addEventListener('pointerdown', () => armed ? insertLetter() : arm());
 document.addEventListener('keydown', e => {
@@ -627,6 +713,31 @@ document.addEventListener('keydown', e => {
   }
   if (k === ' ' || k === 'enter' || k === 'arrowdown') { e.preventDefault(); insertLetter(); }
 });
+
+/* ===== 遠端遙控：遙控器頁面 remote.html 傳指令過來 ===== */
+const REMOTE = 'https://ntfy.sh/' + CFG.room;
+function report(){
+  // 把目前狀態回報給遙控器
+  try{ fetch(REMOTE + '-status', { method:'POST', body: JSON.stringify({ state, count: current, armed }) }).catch(()=>{}); }catch(e){}
+}
+function handleRemote(cmd){
+  if (cmd === 'ping') return report();
+  if (!armed) return report();                 // 還沒在螢幕上點過開始
+  if (cmd === 'insert') insertLetter();
+  else if (cmd === 'reset') reset();
+  else if (cmd === 'watch') openTutorial();
+  else if (cmd === 'skip') skipTutorial();
+  else if (cmd === 'back') goAfterTutorial();
+  else if (cmd === 'mute') toggleMute();
+  report();
+}
+(function listen(){
+  try{
+    const es = new EventSource(REMOTE + '/sse');
+    es.onmessage = ev => { try{ const d = JSON.parse(ev.data); if (d.event === 'message') handleRemote((d.message || '').trim()); }catch(e){} };
+    es.onerror = () => { es.close(); setTimeout(listen, 3000); };
+  }catch(e){}
+})();
 
 // 外部感測器或其他程式也能觸發：呼叫 window.kakiInsert()
 window.kakiInsert = insertLetter;
