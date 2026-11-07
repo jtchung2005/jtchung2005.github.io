@@ -89,6 +89,12 @@
   body.sucked .bow.side{animation:suck .8s cubic-bezier(.6,0,.95,.35) forwards}
 
   #sceneReady .ready-bow{width:min(18vw,27vh);height:min(15.4vw,23vh);margin-bottom:2vh}
+  .end-title{font-size:min(10vw,16vh);font-weight:900;letter-spacing:.2em;animation:endIn 2.4s ease both}
+  @keyframes endIn{0%{opacity:0;letter-spacing:.8em;filter:blur(10px)}100%{opacity:1;letter-spacing:.2em;filter:blur(0)}}
+  .end-bow{animation:endBow 1.6s cubic-bezier(.2,1.4,.4,1) both, sway 2.6s ease-in-out 1.6s infinite}
+  @keyframes endBow{0%{transform:translateY(-60vh) rotate(-30deg) scale(.4);opacity:0}100%{transform:none;opacity:1}}
+  #sceneEnd .ready-sub{animation:endIn 2.4s ease .8s both}
+
   /* ---------- 教學選項 ---------- */
   .choice{margin-top:5vh;display:flex;flex-direction:column;align-items:center;gap:3vh;transition:opacity .6s, transform .6s}
   .hidden-choice{opacity:0;transform:translateY(2vh);pointer-events:none}
@@ -245,6 +251,13 @@
     <button class="btn tut-back" id="btnBack">看完了，返回</button>
   </section>
 
+  <!-- 6. 分析結束（只能由遙控器觸發） -->
+  <section class="scene hidden" id="sceneEnd">
+    <div class="bow ready-bow end-bow"></div>
+    <div class="end-title glow">分析結束</div>
+    <div class="ready-sub" id="endSub">請摘下傳送器，回來跟老闆分享你的感受</div>
+  </section>
+
   <!-- 5. 前往 -->
   <section class="scene hidden" id="sceneGo">
     <div class="bow ready-bow"></div>
@@ -280,19 +293,21 @@ const CFG = {
   autoReset: parseInt(q.get('reset') ?? '0', 10), // 完成後幾秒自動重來，0 = 不自動
   tutorial: q.get('video') || 'tutorial.mp4',     // 傳送器使用教學影片：同資料夾的 mp4，或 YouTube 連結
   room: q.get('room') || 'kaki-machine-666fwjg8',   // 遠端遙控的房間代碼（遙控器要用同一個）
+  endSub: q.get('endsub') || '請摘下傳送器，回來跟老闆分享你的感受',
   sound: q.get('sound') !== '0',
   music: q.get('music') !== '0',                  // 背景音樂，?music=0 關閉
   volume: parseFloat(q.get('vol') ?? '0.8')       // 背景音樂音量 0~1
 };
 
 const $ = id => document.getElementById(id);
-const scenes = { count: $('sceneCount'), boot: $('sceneBoot'), ready: $('sceneReady'), tutorial: $('sceneTutorial'), go: $('sceneGo') };
+const scenes = { count: $('sceneCount'), boot: $('sceneBoot'), ready: $('sceneReady'), tutorial: $('sceneTutorial'), go: $('sceneGo'), end: $('sceneEnd') };
 let current = CFG.from, busy = false, timers = [];
 
 $('sender').textContent = '分析對象：' + CFG.name;
 $('goal').textContent = CFG.goal;
 $('readyTitle').textContent = CFG.readyTitle;
 $('readySub').textContent = CFG.readySub;
+$('endSub').textContent = CFG.endSub;
 
 for (let i = 0; i < 12; i++) {
   const r = document.createElement('i');
@@ -662,6 +677,25 @@ function goAfterTutorial(){
 }
 function skipTutorial(){ if (state === 'choice') goAfterTutorial(); }
 let state = 'idle';
+
+/* ===== 分析結束（遙控器專用） ===== */
+function showEnd(){
+  runId++;                                    // 中斷正在進行的流程
+  timers.forEach(clearTimeout); timers = [];
+  stopVoice(); duck(false);
+  $('tutFrame').innerHTML = '';
+  busy = true;                                // 螢幕點擊不會再投信
+  document.body.classList.remove('boot', 'sucked');
+  document.body.classList.add('done');
+  $('floaters').classList.remove('suck');     // 蝴蝶結重新飄回來
+  retrigger($('flash'), 'go');
+  const sc = $('sceneEnd');                   // 重播進場動畫
+  sc.querySelectorAll('.end-title,.end-bow,.ready-sub').forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
+  show('end');
+  musicMood(2);
+  tone(523, 0, .6); tone(659, .25, .6); tone(784, .5, .8); tone(1046, .8, 1.4);
+  state = 'end'; report();
+}
 ['btnWatch','btnBack'].forEach(id => $(id).addEventListener('pointerdown', e => e.stopPropagation()));
 $('btnWatch').addEventListener('click', openTutorial);
 $('btnBack').addEventListener('click', goAfterTutorial);
@@ -724,6 +758,7 @@ function handleRemote(cmd){
   else if (cmd === 'skip') skipTutorial();
   else if (cmd === 'back') goAfterTutorial();
   else if (cmd === 'mute') toggleMute();
+  else if (cmd === 'end') showEnd();
   report();
 }
 (function listen(){
