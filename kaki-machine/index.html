@@ -250,10 +250,10 @@
     <button class="btn tut-back" id="btnBack">看完了，返回</button>
   </section>
 
-  <!-- 6. 分析結束（只能由遙控器觸發） -->
+  <!-- 6. 分析完成（只能由遙控器觸發） -->
   <section class="scene hidden" id="sceneEnd">
     <div class="bow ready-bow end-bow"></div>
-    <div class="end-title glow">分析結束</div>
+    <div class="end-title glow">分析完成</div>
   </section>
 
   <!-- 5. 前往 -->
@@ -674,7 +674,7 @@ function goAfterTutorial(){
 function skipTutorial(){ if (state === 'choice') goAfterTutorial(); }
 let state = 'idle';
 
-/* ===== 分析結束（遙控器專用） ===== */
+/* ===== 分析完成（遙控器專用） ===== */
 function showEnd(){
   runId++;                                    // 中斷正在進行的流程
   timers.forEach(clearTimeout); timers = [];
@@ -689,7 +689,6 @@ function showEnd(){
   sc.querySelectorAll('.end-title,.end-bow').forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
   show('end');
   musicMood(2);
-  tone(523, 0, .6); tone(659, .25, .6); tone(784, .5, .8); tone(1046, .8, 1.4);
   state = 'end'; report();
 }
 ['btnWatch','btnBack'].forEach(id => $(id).addEventListener('pointerdown', e => e.stopPropagation()));
