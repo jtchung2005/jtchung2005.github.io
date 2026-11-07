@@ -234,11 +234,7 @@
     <div class="ready-title glow" id="readyTitle">啟動完成</div>
     <div class="ready-sub" id="readySub">請戴上傳送器</div>
     <div class="choice hidden-choice" id="choice">
-      <div class="choice-q">是否觀看傳送器使用教學？</div>
-      <div class="choice-btns">
-        <button class="btn primary" id="btnWatch">觀看教學</button>
-        <button class="btn" id="btnSkip">略過</button>
-      </div>
+      <button class="btn primary" id="btnWatch">觀看傳送器使用教學</button>
     </div>
   </section>
 
@@ -666,9 +662,8 @@ function goAfterTutorial(){
 }
 function skipTutorial(){ if (state === 'choice') goAfterTutorial(); }
 let state = 'idle';
-['btnWatch','btnSkip','btnBack'].forEach(id => $(id).addEventListener('pointerdown', e => e.stopPropagation()));
+['btnWatch','btnBack'].forEach(id => $(id).addEventListener('pointerdown', e => e.stopPropagation()));
 $('btnWatch').addEventListener('click', openTutorial);
-$('btnSkip').addEventListener('click', skipTutorial);
 $('btnBack').addEventListener('click', goAfterTutorial);
 
 function reset(){
