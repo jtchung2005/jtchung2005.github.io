@@ -317,7 +317,7 @@ const CFG = {
   room: q.get('room') || 'kaki-machine-666fwjg8',   // 遠端遙控的房間代碼（遙控器要用同一個）
   sound: q.get('sound') !== '0',
   music: q.get('music') !== '0',                  // 背景音樂，?music=0 關閉
-  volume: parseFloat(q.get('vol') ?? '0.8')       // 背景音樂音量 0~1
+  volume: parseFloat(q.get('vol') ?? (()=>{ try{ return localStorage.getItem('kaki-vol'); }catch(e){} })() ?? '0.8')  // 背景音樂音量 0~1
 };
 
 const $ = id => document.getElementById(id);
@@ -575,10 +575,21 @@ function buildRobot(ctx, input, dest, amt){
 }
 
 function duck(on){
+  M.ducked = on;
   if (!M.on || M.muted) return;
   const t = ac.currentTime, g = M.master.gain;
   g.cancelScheduledValues(t); g.setValueAtTime(g.value, t);
   g.linearRampToValueAtTime((on ? .18 : .5) * CFG.volume, t + .4);
+}
+
+/* 背景音樂音量（0~1），遙控器可以調，會記在這台機器上 */
+function setVolume(v){
+  CFG.volume = Math.max(0, Math.min(1, v));
+  try{ localStorage.setItem('kaki-vol', CFG.volume); }catch(e){}
+  if (!M.on || M.muted) return;
+  const t = ac.currentTime, g = M.master.gain;
+  g.cancelScheduledValues(t); g.setValueAtTime(g.value, t);
+  g.linearRampToValueAtTime((M.ducked ? .18 : .5) * CFG.volume, t + .25);
 }
 
 // 播一句旁白（壓低音樂），播完才往下；音檔不能用時改用瀏覽器語音
@@ -803,10 +814,11 @@ document.addEventListener('keydown', e => {
 const REMOTE = 'https://ntfy.sh/' + CFG.room;
 function report(){
   // 把目前狀態回報給遙控器
-  try{ fetch(REMOTE + '-status', { method:'POST', body: JSON.stringify({ state, count: current, armed }) }).catch(()=>{}); }catch(e){}
+  try{ fetch(REMOTE + '-status', { method:'POST', body: JSON.stringify({ state, count: current, armed, vol: CFG.volume, muted: !!M.muted }) }).catch(()=>{}); }catch(e){}
 }
 function handleRemote(cmd){
   if (cmd === 'ping') return report();
+  if (cmd.startsWith('vol:')){ setVolume(parseFloat(cmd.slice(4))); return report(); }
   if (!armed) return report();                 // 還沒在螢幕上點過開始
   if (cmd === 'insert') insertLetter();
   else if (cmd === 'reset') reset();

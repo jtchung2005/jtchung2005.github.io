@@ -24,6 +24,11 @@
   button.tp{background:linear-gradient(90deg,#6a2cff,#ff6a00);font-size:22px;padding:24px 10px}
   button.warn{border-color:#ff1e3c;color:#ff8a9a}
   button:disabled{opacity:.35}
+  .vol{grid-column:1/3;border:2px solid #ff6a00;border-radius:16px;padding:14px 14px 16px;background:rgba(30,4,4,.8)}
+  .vol-head{display:flex;justify-content:space-between;font-weight:900;color:#ffb03a;letter-spacing:.1em;margin-bottom:10px}
+  .vol-row{display:flex;align-items:center;gap:10px}
+  .vol input{flex:1;accent-color:#ff6a00;height:28px}
+  .vbtn{padding:8px 0;width:48px;font-size:22px;border-radius:12px}
   .note{max-width:420px;font-size:13px;line-height:1.7;color:rgba(255,220,190,.6)}
   .room{font-family:monospace;color:#ffb03a}
 </style>
@@ -41,6 +46,14 @@
     <button data-cmd="watch" style="grid-column:1/3">觀看傳送器使用教學</button>
     <button data-cmd="back">教學結束・返回</button>
     <button data-cmd="mute">音樂開／關</button>
+    <div class="vol">
+      <div class="vol-head"><span>背景音樂音量</span><span id="volVal">80%</span></div>
+      <div class="vol-row">
+        <button class="vbtn" data-step="-0.1">－</button>
+        <input type="range" id="vol" min="0" max="100" step="5" value="80">
+        <button class="vbtn" data-step="0.1">＋</button>
+      </div>
+    </div>
     <button class="big tp" data-cmd="teleport">⟳ 傳送中</button>
     <button class="big end" data-cmd="end">✦ 分析完成</button>
     <button class="warn" data-cmd="reset" style="grid-column:1/3">↺ 重來（回到 49 封）</button>
@@ -83,6 +96,21 @@ function confirmReset(){                 // 重來要連按兩下，避免誤觸
   return false;
 }
 
+// 音量：拖動滑桿或按 ± 調整
+const $vol = document.getElementById('vol'), $volVal = document.getElementById('volVal');
+let volTimer = null, volTouched = 0;
+function sendVol(){
+  $volVal.textContent = $vol.value + '%';
+  volTouched = Date.now();
+  clearTimeout(volTimer);
+  volTimer = setTimeout(() => send('vol:' + ($vol.value / 100).toFixed(2)), 150);   // 拖動時不要狂送
+}
+$vol.addEventListener('input', sendVol);
+document.querySelectorAll('.vbtn').forEach(b => b.addEventListener('click', () => {
+  $vol.value = Math.max(0, Math.min(100, +$vol.value + Math.round(parseFloat(b.dataset.step) * 100)));
+  sendVol();
+}));
+
 // 接收螢幕回報的狀態
 (function listen(){
   const es = new EventSource(BASE + '-status/sse');
@@ -93,6 +121,9 @@ function confirmReset(){                 // 重來要連按兩下，避免誤觸
       if (d.event !== 'message') return;
       const s = JSON.parse(d.message);
       lastSeen = Date.now();
+      if (typeof s.vol === 'number' && Date.now() - volTouched > 1500){
+        $vol.value = Math.round(s.vol * 100); $volVal.textContent = $vol.value + '%' + (s.muted ? '（靜音）' : '');
+      }
       $state.textContent = !s.armed ? '尚未在螢幕點開始' : (NAMES[s.state] || s.state) + (s.state === 'idle' ? `（${s.count} 封）` : '');
     }catch(e){}
   };
