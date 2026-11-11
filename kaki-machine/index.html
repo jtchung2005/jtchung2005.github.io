@@ -111,6 +111,10 @@
   @keyframes bowWarp{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(.55)}100%{transform:rotate(360deg) scale(1)}}
   .tp-text{font-size:min(9vw,15vh);font-weight:900;letter-spacing:.15em;animation:hue 3s linear infinite}
 
+  /* 播教學影片時：拿掉掃描線、顆粒、暗角，影片保持乾淨 */
+  body.tut .scan, body.tut .grain, body.tut .vignette{opacity:0;transition:opacity .4s}
+  body.tut .tut-frame{border-color:transparent;box-shadow:none}
+
   /* ---------- 教學選項 ---------- */
   .choice{margin-top:5vh;display:flex;flex-direction:column;align-items:center;gap:3vh;transition:opacity .6s, transform .6s}
   .hidden-choice{opacity:0;transform:translateY(2vh);pointer-events:none}
@@ -708,11 +712,13 @@ function openTutorial(){
     box.appendChild(v);
   }
   if (M.on && !M.muted) duck(true);
+  document.body.classList.add('tut');
   show('tutorial');
 }
 function goAfterTutorial(){
   if (state !== 'tutorial' && state !== 'choice') return;
   $('tutFrame').innerHTML = '';
+  document.body.classList.remove('tut');
   state = 'go'; report();
   duck(false);
   show('go');
@@ -727,7 +733,7 @@ async function showTeleport(){
   stopVoice();
   $('tutFrame').innerHTML = '';
   busy = true;
-  document.body.classList.remove('boot', 'done');
+  document.body.classList.remove('boot', 'done', 'tut');
   document.body.classList.add('sucked', 'warp');
   $('floaters').classList.add('suck');
   retrigger($('flash'), 'go');
@@ -753,7 +759,7 @@ function showEnd(){
   stopVoice(); duck(false);
   $('tutFrame').innerHTML = '';
   busy = true;                                // 螢幕點擊不會再投信
-  document.body.classList.remove('boot', 'sucked', 'warp');
+  document.body.classList.remove('boot', 'sucked', 'warp', 'tut');
   document.body.classList.add('done');
   $('floaters').classList.remove('suck');     // 蝴蝶結重新飄回來
   retrigger($('flash'), 'go');
@@ -773,7 +779,7 @@ function reset(){
   stopVoice();
   hideSub();
   current = CFG.from; busy = false;
-  document.body.classList.remove('boot', 'shake', 'done', 'sucked', 'warp');
+  document.body.classList.remove('boot', 'shake', 'done', 'sucked', 'warp', 'tut');
   $('floaters').classList.remove('suck');
   $('met').classList.remove('on');
   $('choice').classList.add('hidden-choice');
