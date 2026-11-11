@@ -78,8 +78,11 @@ const $dot = document.getElementById('dot'), $conn = document.getElementById('co
 let lastSeen = 0;
 
 function send(cmd){
-  fetch(BASE, { method:'POST', body: cmd }).catch(() => { $conn.textContent = '傳送失敗'; });
+  fetch(BASE, { method:'POST', body: cmd })
+    .then(res => { if (!res.ok) $conn.textContent = '傳送失敗（' + res.status + '）'; else if (cmd !== 'ping') flash(); })
+    .catch(() => { $conn.textContent = '傳送失敗（連不到伺服器）'; });
 }
+function flash(){ $conn.textContent = '已送出 ✓'; clearTimeout(flash.t); flash.t = setTimeout(() => $conn.textContent = '已連線', 1200); }
 document.querySelectorAll('button[data-cmd]').forEach(b => b.addEventListener('click', () => {
   const cmd = b.dataset.cmd;
   if (cmd === 'reset' && !confirmReset()) return;

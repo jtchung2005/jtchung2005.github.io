@@ -830,12 +830,24 @@ function handleRemote(cmd){
   else if (cmd === 'teleport') showTeleport();
   report();
 }
+/* 除錯：網址加 ?debug=1，左上角會顯示遙控連線狀態 */
+const DBG = q.get('debug') === '1' ? document.body.appendChild(Object.assign(document.createElement('div'), {
+  style:'position:fixed;left:8px;top:8px;z-index:99;font:12px monospace;color:#ffb03a;background:rgba(0,0,0,.7);padding:6px 8px;border-radius:6px;white-space:pre'
+})) : null;
+const dbg = msg => { if (DBG) DBG.textContent = '房間 ' + CFG.room + '\n' + msg; };
+dbg('連線中…');
 (function listen(){
   try{
     const es = new EventSource(REMOTE + '/sse');
-    es.onmessage = ev => { try{ const d = JSON.parse(ev.data); if (d.event === 'message') handleRemote((d.message || '').trim()); }catch(e){} };
-    es.onerror = () => { es.close(); setTimeout(listen, 3000); };
-  }catch(e){}
+    es.onopen = () => dbg('遙控已連線');
+    es.onmessage = ev => {
+      try{
+        const d = JSON.parse(ev.data);
+        if (d.event === 'message'){ const c = (d.message || '').trim(); dbg('收到指令：' + c + (armed ? '' : '（尚未點開始，忽略）')); handleRemote(c); }
+      }catch(e){}
+    };
+    es.onerror = () => { dbg('連線中斷，3 秒後重試'); es.close(); setTimeout(listen, 3000); };
+  }catch(e){ dbg('無法連線：' + e.message); }
 })();
 
 // 外部感測器或其他程式也能觸發：呼叫 window.kakiInsert()
