@@ -113,7 +113,10 @@
 
   /* 播教學影片時：拿掉掃描線、顆粒、暗角，影片保持乾淨 */
   body.tut .scan, body.tut .grain, body.tut .vignette{opacity:0;transition:opacity .4s}
-  body.tut .tut-frame{border-color:transparent;box-shadow:none}
+  /* 教學影片直接鋪滿整個畫面 */
+  body.tut .tut-frame{position:fixed;inset:0;width:100vw;height:100vh;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none;z-index:8;background:#000}
+  body.tut .tut-frame video,body.tut .tut-frame iframe{object-fit:contain}
+  body.tut .tut-title,body.tut .tut-back,body.tut .floaters{display:none}
 
   /* ---------- 教學選項 ---------- */
   .choice{margin-top:5vh;display:flex;flex-direction:column;align-items:center;gap:3vh;transition:opacity .6s, transform .6s}
@@ -706,7 +709,7 @@ function openTutorial(){
     box.innerHTML = `<iframe src="https://www.youtube.com/embed/${yt}?autoplay=1&rel=0&playsinline=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
   } else {
     const v = document.createElement('video');
-    v.src = CFG.tutorial; v.controls = true; v.autoplay = true; v.playsInline = true;
+    v.src = CFG.tutorial; v.controls = false; v.autoplay = true; v.playsInline = true;
     v.onended = () => goAfterTutorial();
     v.onerror = () => { box.innerHTML = '<div class="tut-empty">尚未放入教學影片<br>（把影片命名為 tutorial.mp4 放在同一個資料夾）</div>'; };
     box.appendChild(v);
