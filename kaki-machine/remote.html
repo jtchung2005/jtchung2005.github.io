@@ -49,9 +49,17 @@
     <div class="vol">
       <div class="vol-head"><span>背景音樂音量</span><span id="volVal">80%</span></div>
       <div class="vol-row">
-        <button class="vbtn" data-step="-0.1">－</button>
+        <button class="vbtn" data-for="vol" data-step="-0.1">－</button>
         <input type="range" id="vol" min="0" max="100" step="5" value="80">
-        <button class="vbtn" data-step="0.1">＋</button>
+        <button class="vbtn" data-for="vol" data-step="0.1">＋</button>
+      </div>
+    </div>
+    <div class="vol">
+      <div class="vol-head"><span>教學影片音量</span><span id="tvolVal">100%</span></div>
+      <div class="vol-row">
+        <button class="vbtn" data-for="tvol" data-step="-0.1">－</button>
+        <input type="range" id="tvol" min="0" max="100" step="5" value="100">
+        <button class="vbtn" data-for="tvol" data-step="0.1">＋</button>
       </div>
     </div>
     <button class="big tp" data-cmd="teleport">⟳ 傳送中</button>
@@ -99,20 +107,30 @@ function confirmReset(){                 // 重來要連按兩下，避免誤觸
   return false;
 }
 
-// 音量：拖動滑桿或按 ± 調整
-const $vol = document.getElementById('vol'), $volVal = document.getElementById('volVal');
-let volTimer = null, volTouched = 0;
-function sendVol(){
-  $volVal.textContent = $vol.value + '%';
-  volTouched = Date.now();
-  clearTimeout(volTimer);
-  volTimer = setTimeout(() => send('vol:' + ($vol.value / 100).toFixed(2)), 150);   // 拖動時不要狂送
-}
-$vol.addEventListener('input', sendVol);
+// 音量：拖動滑桿或按 ± 調整（vol = 背景音樂、tvol = 教學影片）
+const VOL = {};
+['vol', 'tvol'].forEach(id => {
+  const el = document.getElementById(id), lab = document.getElementById(id + 'Val');
+  const v = VOL[id] = { el, lab, timer:null, touched:0 };
+  v.send = () => {
+    lab.textContent = el.value + '%';
+    v.touched = Date.now();
+    clearTimeout(v.timer);
+    v.timer = setTimeout(() => send(id + ':' + (el.value / 100).toFixed(2)), 150);   // 拖動時不要狂送
+  };
+  el.addEventListener('input', v.send);
+});
 document.querySelectorAll('.vbtn').forEach(b => b.addEventListener('click', () => {
-  $vol.value = Math.max(0, Math.min(100, +$vol.value + Math.round(parseFloat(b.dataset.step) * 100)));
-  sendVol();
+  const v = VOL[b.dataset.for];
+  v.el.value = Math.max(0, Math.min(100, +v.el.value + Math.round(parseFloat(b.dataset.step) * 100)));
+  v.send();
 }));
+function syncVol(id, val, extra){
+  const v = VOL[id];
+  if (typeof val === 'number' && Date.now() - v.touched > 1500){
+    v.el.value = Math.round(val * 100); v.lab.textContent = v.el.value + '%' + (extra || '');
+  }
+}
 
 // 接收螢幕回報的狀態
 (function listen(){
@@ -124,9 +142,8 @@ document.querySelectorAll('.vbtn').forEach(b => b.addEventListener('click', () =
       if (d.event !== 'message') return;
       const s = JSON.parse(d.message);
       lastSeen = Date.now();
-      if (typeof s.vol === 'number' && Date.now() - volTouched > 1500){
-        $vol.value = Math.round(s.vol * 100); $volVal.textContent = $vol.value + '%' + (s.muted ? '（靜音）' : '');
-      }
+      syncVol('vol', s.vol, s.muted ? '（靜音）' : '');
+      syncVol('tvol', s.tvol);
       $state.textContent = !s.armed ? '尚未在螢幕點開始' : (NAMES[s.state] || s.state) + (s.state === 'idle' ? `（${s.count} 封）` : '');
     }catch(e){}
   };

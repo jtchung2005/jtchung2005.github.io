@@ -589,6 +589,15 @@ function duck(on){
   g.linearRampToValueAtTime((on ? .18 : .5) * CFG.volume, t + .4);
 }
 
+/* 教學影片音量（0~1），遙控器可以調，會記在這台機器上 */
+let tutVol = (() => { try{ const v = parseFloat(localStorage.getItem('kaki-tutvol')); return isNaN(v) ? 1 : v; }catch(e){ return 1; } })();
+function setTutVolume(v){
+  tutVol = Math.max(0, Math.min(1, v));
+  try{ localStorage.setItem('kaki-tutvol', tutVol); }catch(e){}
+  const vid = document.querySelector('#tutFrame video');
+  if (vid) vid.volume = tutVol;
+}
+
 /* 背景音樂音量（0~1），遙控器可以調，會記在這台機器上 */
 function setVolume(v){
   CFG.volume = Math.max(0, Math.min(1, v));
@@ -709,7 +718,7 @@ function openTutorial(){
     box.innerHTML = `<iframe src="https://www.youtube.com/embed/${yt}?autoplay=1&rel=0&playsinline=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
   } else {
     const v = document.createElement('video');
-    v.src = CFG.tutorial; v.controls = false; v.autoplay = true; v.playsInline = true;
+    v.src = CFG.tutorial; v.controls = false; v.volume = tutVol; v.autoplay = true; v.playsInline = true;
     v.onended = () => goAfterTutorial();
     v.onerror = () => { box.innerHTML = '<div class="tut-empty">尚未放入教學影片<br>（把影片命名為 tutorial.mp4 放在同一個資料夾）</div>'; };
     box.appendChild(v);
@@ -823,10 +832,11 @@ document.addEventListener('keydown', e => {
 const REMOTE = 'https://ntfy.sh/' + CFG.room;
 function report(){
   // 把目前狀態回報給遙控器
-  try{ fetch(REMOTE + '-status', { method:'POST', body: JSON.stringify({ state, count: current, armed, vol: CFG.volume, muted: !!M.muted }) }).catch(()=>{}); }catch(e){}
+  try{ fetch(REMOTE + '-status', { method:'POST', body: JSON.stringify({ state, count: current, armed, vol: CFG.volume, tvol: tutVol, muted: !!M.muted }) }).catch(()=>{}); }catch(e){}
 }
 function handleRemote(cmd){
   if (cmd === 'ping') return report();
+  if (cmd.startsWith('tvol:')){ setTutVolume(parseFloat(cmd.slice(5))); return report(); }
   if (cmd.startsWith('vol:')){ setVolume(parseFloat(cmd.slice(4))); return report(); }
   if (!armed) return report();                 // 還沒在螢幕上點過開始
   if (cmd === 'insert') insertLetter();
