@@ -292,6 +292,7 @@
     <div class="bow ready-bow"></div>
     <div class="ready-title glow">請戴上傳送器</div>
     <div class="ready-sub">出發去了解她的故事吧</div>
+    <div class="choice"><button class="btn primary" id="btnWatch2">再看一次傳送器使用教學</button></div>
   </section>
 </div>
 
@@ -710,7 +711,7 @@ function youtubeId(u){
   const m = u.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/); return m ? m[1] : null;
 }
 function openTutorial(){
-  if (state !== 'choice') return;
+  if (!['choice', 'go', 'tutorial'].includes(state)) return;   // 看完後可以再看，播放中按則從頭播
   state = 'tutorial'; report();
   const box = $('tutFrame'); box.innerHTML = '';
   const yt = youtubeId(CFG.tutorial);
@@ -781,8 +782,9 @@ function showEnd(){
   musicMood(2);
   state = 'end'; report();
 }
-['btnWatch','btnBack'].forEach(id => $(id).addEventListener('pointerdown', e => e.stopPropagation()));
+['btnWatch','btnWatch2','btnBack'].forEach(id => $(id).addEventListener('pointerdown', e => e.stopPropagation()));
 $('btnWatch').addEventListener('click', openTutorial);
+$('btnWatch2').addEventListener('click', openTutorial);
 $('btnBack').addEventListener('click', goAfterTutorial);
 
 function reset(){
